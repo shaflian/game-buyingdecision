@@ -556,11 +556,16 @@
     box-shadow: 0 0 8px rgba(102,192,244,0.5);
   }
   .meter-ticks {
-    display: flex; justify-content: space-between;
+    position: relative; height: 14px;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.5625rem; font-weight: 400;
     color: var(--text-200); letter-spacing: 0;
   }
+  .meter-ticks span {
+    position: absolute; transform: translateX(-50%);
+  }
+  .meter-ticks span:first-child { transform: translateX(0); }
+  .meter-ticks span:last-child  { transform: translateX(-100%); }
   .meter-marker { position: absolute; top: -6px; width: 1px; height: 16px; background: var(--border); }
   .meter-marker.major { background: var(--border-bright); }
 
@@ -1528,13 +1533,18 @@
             <div class="verdict-label" id="rVerdict">calculating</div>
             <div class="meter">
               <div class="meter-ticks">
-                <span>skip</span><span>sale</span><span>fair</span><span>buy</span><span>must</span>
+                <span style="left:0%">skip</span>
+                <span style="left:35%">sale</span>
+                <span style="left:55%">fair</span>
+                <span style="left:72%">buy</span>
+                <span style="left:88%">must</span>
               </div>
               <div class="meter-track">
                 <div class="meter-marker" style="left:0%"></div>
-                <div class="meter-marker major" style="left:25%"></div>
-                <div class="meter-marker" style="left:50%"></div>
-                <div class="meter-marker major" style="left:75%"></div>
+                <div class="meter-marker major" style="left:35%"></div>
+                <div class="meter-marker major" style="left:55%"></div>
+                <div class="meter-marker major" style="left:72%"></div>
+                <div class="meter-marker major" style="left:88%"></div>
                 <div class="meter-marker" style="left:100%"></div>
                 <div class="meter-fill" id="rMeter" style="width:0%"></div>
               </div>
@@ -2696,6 +2706,8 @@
 
   const RATES = { USD: 1, IDR: 16400, EUR: 0.92, GBP: 0.79, SGD: 1.34, JPY: 154 };
   const SYMBOLS = { USD: '$', IDR: 'Rp', EUR: '€', GBP: '£', SGD: 'S$', JPY: '¥' };
+  // Steam country codes for regional pricing (avoids USD×fixed-rate mismatch)
+  const CCY_TO_CC = { USD: 'us', IDR: 'id', EUR: 'de', GBP: 'gb', SGD: 'sg', JPY: 'jp' };
   let currentCcy = 'USD';
 
   function fmtPrice(usd) {
@@ -2902,7 +2914,7 @@
     const appId = appIdFromCapsule(g.capsule);
     if (!appId) return;
     try {
-      const live = await fetchSteamPriceForApp(appId);
+      const live = await fetchSteamPriceForApp(appId, currentCcy);
       if (!live || live.free) return;
       if (live.current != null && state.pickedGame?.id === id) {
         state.pickedGame = { ...state.pickedGame,
@@ -3202,9 +3214,10 @@
     return m ? m[1] : null;
   }
 
-  async function fetchSteamPriceForApp(appId) {
+  async function fetchSteamPriceForApp(appId, ccy = 'USD') {
     if (!appId) return null;
-    const url = `https://store.steampowered.com/api/appdetails?appids=${appId}&cc=us&filters=price_overview`;
+    const cc = CCY_TO_CC[ccy] || 'us';
+    const url = `https://store.steampowered.com/api/appdetails?appids=${appId}&cc=${cc}&filters=price_overview`;
     for (const wrap of CORS_PROXIES) {
       try {
         const res = await fetch(wrap(url));
@@ -3214,9 +3227,11 @@
         if (!data || !data.success) continue;
         const po = data.data && data.data.price_overview;
         if (!po) return { current: null, initial: null, free: true };
+        // Steam returns prices in local currency units — convert back to USD for internal model
+        const rate = RATES[ccy] || 1;
         return {
-          current: (po.final || 0) / 100,
-          initial: (po.initial || 0) / 100,
+          current: (po.final || 0) / 100 / rate,
+          initial: (po.initial || 0) / 100 / rate,
           discount: po.discount_percent || 0,
           free: false
         };
@@ -3240,7 +3255,7 @@
     const steamAppId = steamAppIdFromRawg(detail);
     let priceInfo = null;
     if (steamAppId) {
-      try { priceInfo = await fetchSteamPriceForApp(steamAppId); } catch (e) {}
+      try { priceInfo = await fetchSteamPriceForApp(steamAppId, currentCcy); } catch (e) {}
     }
 
     let currentUSD = null, launchUSD = null, lowUSD = null;
