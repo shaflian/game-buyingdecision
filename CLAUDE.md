@@ -201,6 +201,34 @@ git add games.json && git commit -m "Refresh games.json" && git push origin main
 2. Adding/editing the env var requires a redeploy — push an empty commit: `git commit --allow-empty -m "Trigger redeploy" && git push origin main`
 3. Steam API key domain registration (`steamcommunity.com/dev/apikey`) — any domain works, Steam doesn't enforce subdomain matching for server-side calls
 
+## Verdict — "If you like this" Recommendations
+
+A `#rRec` block appears at the bottom of the receipt (before `receipt-foot`) after every calculation. It shows up to 3 games with genre overlap to the **currently selected game** — refreshes every time the user picks a different game.
+
+### Scoring (Jaccard similarity)
+```js
+const shared = currentGame.genres.filter(gn => candidate.genres.includes(gn));
+const jaccard = shared.length / Math.max(currentGame.genres.length, candidate.genres.length);
+// small taste-profile tiebreaker (15%) for equally similar results
+const tasteBonus = tasteProfile ? tasteMatchScore(candidate) / candidate.genres.length * 0.15 : 0;
+score = jaccard + tasteBonus;
+```
+- Filter: `shared.length >= 1` (at least one genre in common)
+- Sort: descending by `score`, take top 3
+- Card label shows the shared genre tags (e.g. `rpg · story`), not a percentage
+
+### Key rule
+**Never base recommendations on `tasteProfile` alone** — that was the original bug (always showed the same 3 shooter/strategy games regardless of selected game). The primary signal must be the current game's genres. `tasteProfile` is only a tiebreaker.
+
+### HTML / CSS anchors
+| Element | Purpose |
+|---|---|
+| `#rRec` | Wrapper — `display:none` until calc runs |
+| `#rRecGames` | Flex row of `.rec-card` elements |
+| `.rec-card` | Clickable card, calls `pickGame(id)` on click |
+| `.rec-thumb` | `background-image` thumbnail (54px tall) |
+| `.rec-match` | Shared genre tags in `DM Mono` primary color |
+
 ## GAME_DB — Free-to-Play entries
 
 Free games use `launch: 0, low: 0, prices: { steam: 0 }`. They are excluded from the Deals browser (`getDealsPool` filters `launch <= 0`). Current F2P entries: Dota 2 (570), CS2 (730), Apex Legends (1172470), Warframe (230410), Path of Exile (238960), TF2 (440). App IDs are embedded in the `capsule` URL for live price lookups.
