@@ -1,0 +1,3665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  (function(){
+    try { var s=localStorage.getItem('worthit.theme'); if(s){document.documentElement.dataset.theme=s;return;} } catch(e){}
+    document.documentElement.dataset.theme=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+  })();
+</script>
+<title>Game Buying Decision</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e1216;
+    --bg-400: #16202d;
+    --bg-600: #1b2838;
+    --surface: #1e2a3a;
+    --text: #c6d4df;
+    --text-300: #8f98a0;
+    --text-200: #4b6474;
+    --text-light: #67829b;
+    --text-600: #e8f0f5;
+    --primary: #66c0f4;
+    --primary-100: #0f2233;
+    --positive: #a4d007;
+    --gold: #f5c518;
+    --orange: #f8a819;
+    --red: #ff6b6b;
+    --border: #2a475e;
+    --border-bright: #3a6382;
+    --transition: 0.18s ease;
+    --frame-pad: 64px;
+  }
+
+  [data-theme="light"] {
+    --bg: #eef1f5;
+    --bg-400: #e0e6ed;
+    --bg-600: #d4dce6;
+    --surface: #ffffff;
+    --text: #1e3044;
+    --text-300: #34536a;
+    --text-200: #4e6a7c;
+    --text-light: #3a5a72;
+    --text-600: #0a1620;
+    --primary: #1562b0;
+    --primary-100: #d0e6f8;
+    --positive: #3a7200;
+    --gold: #a07800;
+    --orange: #b85a00;
+    --border: #b4c8d8;
+    --border-bright: #7a9ab0;
+  }
+  [data-theme="light"] .field {
+    background: rgba(255, 255, 255, 0.52);
+    border-color: rgba(198, 212, 223, 0.8);
+  }
+  [data-theme="light"] .suggestions {
+    background: rgba(245, 248, 251, 0.9);
+    border-color: rgba(198, 212, 223, 0.7);
+  }
+  [data-theme="light"] .plat {
+    background: rgba(255, 255, 255, 0.48);
+    border-color: rgba(198, 212, 223, 0.7);
+  }
+  [data-theme="light"] .plat.unavailable:hover {
+    background: rgba(255, 255, 255, 0.48);
+    border-color: rgba(198, 212, 223, 0.7);
+  }
+  [data-theme="light"] .verdict-block {
+    background: rgba(255, 255, 255, 0.58);
+    border-color: rgba(26, 114, 196, 0.18);
+    border-left-color: var(--primary);
+    box-shadow: 0 2px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  [data-theme="light"] .coffee {
+    background: rgba(218, 234, 247, 0.65);
+    border-color: rgba(26, 114, 196, 0.2);
+    border-left-color: var(--primary);
+    box-shadow: none;
+  }
+  [data-theme="light"] .deal-block { background: rgba(198, 212, 223, 0.4); }
+  [data-theme="light"] .deal-cell { background: rgba(255, 255, 255, 0.58); }
+  [data-theme="light"] .modal {
+    background: rgba(245, 248, 251, 0.92);
+    border-color: rgba(198, 212, 223, 0.6);
+    box-shadow: 0 8px 48px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    transition: background var(--transition), color var(--transition);
+  }
+
+  body { min-height: 100vh; overflow-x: hidden; }
+
+  /* ---------- Background ---------- */
+  .bg-layer {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(ellipse 55% 40% at 15% 25%, rgba(30,70,130,0.55) 0%, transparent 55%),
+      radial-gradient(ellipse 45% 35% at 85% 65%, rgba(20,45,100,0.45) 0%, transparent 55%),
+      radial-gradient(ellipse 40% 30% at 60% 85%, rgba(15,35,75,0.35) 0%, transparent 55%),
+      radial-gradient(ellipse 80% 50% at 50% -5%, rgba(26,60,100,0.55) 0%, transparent 70%),
+      linear-gradient(180deg, #0d1520 0%, #0e1216 50%, #0a0e13 100%);
+  }
+  .bg-layer::after { display: none; }
+  [data-theme="light"] .bg-layer {
+    background:
+      radial-gradient(ellipse 60% 45% at 10% 20%, rgba(150,185,225,0.35) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 88% 70%, rgba(130,170,215,0.28) 0%, transparent 55%),
+      radial-gradient(ellipse 40% 30% at 55% 90%, rgba(160,195,230,0.22) 0%, transparent 55%),
+      linear-gradient(160deg, #dce5f0 0%, #e8edf4 40%, #eff2f6 100%);
+  }
+  [data-theme="light"] .bg-layer::after { opacity: 0; }
+  [data-theme="light"] .nav {
+    background: rgba(255, 255, 255, 0.62);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 32px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+
+  /* ---------- Frame ---------- */
+  .frame { max-width: 1440px; margin: 0 auto; padding: 0 var(--frame-pad) 100px; position: relative; }
+
+  /* ---------- Hero visual (full-bleed behind nav) ---------- */
+  .hero-visual {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100vw;
+    height: 580px;
+    z-index: 0;
+    background: url('tsutshima2.jpg') center 28% / cover no-repeat;
+  }
+  .hero-visual::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg,
+      rgba(6,11,18,0.06) 0%,
+      rgba(6,11,18,0.02) 22%,
+      rgba(6,11,18,0.38) 54%,
+      rgba(6,11,18,0.82) 72%,
+      rgba(6,11,18,0.97) 86%,
+      rgba(6,11,18,1.00) 100%
+    );
+  }
+  [data-theme="light"] .hero-visual::after {
+    background: linear-gradient(180deg,
+      rgba(238,241,245,0.0) 0%,
+      rgba(238,241,245,0.0) 32%,
+      rgba(238,241,245,0.6) 56%,
+      rgba(238,241,245,0.92) 74%,
+      rgba(238,241,245,1.0) 86%
+    );
+  }
+  [data-theme="light"] .hero-eyebrow { color: rgba(10, 32, 56, 0.6); }
+  [data-theme="light"] .hero h1 { color: #0c1e2e; }
+  [data-theme="light"] .hero h1 em { color: var(--primary); }
+  [data-theme="light"] .hero p { color: rgba(16, 44, 72, 0.78); }
+
+  /* ---------- Nav ---------- */
+  .nav {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 10px 20px;
+    position: sticky; top: 16px; z-index: 100;
+    background: rgba(14, 24, 38, 0.62);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(102, 192, 244, 0.13);
+    border-radius: 100px;
+    box-shadow: 0 4px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
+  }
+  .nav-brand {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-600);
+  }
+  .nav-brand .dot { color: var(--primary); }
+  .nav-links {
+    display: flex; align-items: center; gap: 20px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-300);
+  }
+  .nav-links a { color: inherit; text-decoration: none; transition: color var(--transition); }
+  .nav-links a:hover { color: var(--primary); }
+
+  .ccy-select {
+    background: var(--bg-600);
+    border: 1px solid var(--border);
+    height: 30px;
+    padding: 0 26px 0 10px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.6875rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--text-300);
+    cursor: pointer;
+    transition: all var(--transition);
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1L5 5L9 1' stroke='%2366c0f4' stroke-width='1.2'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-color: var(--bg-600);
+  }
+  .ccy-select:hover { border-color: var(--primary); color: var(--text); }
+  [data-theme="light"] .ccy-select { background-color: var(--bg-600); }
+
+  .theme-toggle {
+    width: 30px; height: 30px;
+    border: 1px solid var(--border);
+    background: var(--bg-600);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-300);
+    transition: all var(--transition);
+  }
+  .theme-toggle:hover { border-color: var(--primary); color: var(--primary); }
+  .theme-toggle svg { width: 13px; height: 13px; }
+  /* default dark: show moon */
+  .theme-toggle .sun { display: none; }
+  .theme-toggle .moon { display: block; }
+  [data-theme="light"] .theme-toggle .sun { display: block; }
+  [data-theme="light"] .theme-toggle .moon { display: none; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    margin-bottom: 64px;
+    position: relative;
+    z-index: 1;
+    padding-top: 280px;
+  }
+  .hero-eyebrow {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.6875rem;
+    color: rgba(180, 210, 235, 0.78);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 700;
+    font-size: clamp(2rem, 3.5vw, 3.25rem);
+    line-height: 1.07;
+    letter-spacing: -0.02em;
+    color: #edf4fa;
+    margin-bottom: 20px;
+  }
+  .hero h1 em { color: #66c0f4; }
+  .hero p { font-size: 0.9375rem; color: rgba(190, 215, 235, 0.82); max-width: 520px; line-height: 1.7; }
+
+  /* ---------- Layout ---------- */
+  .grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 64px; }
+
+  /* ---------- Section labels ---------- */
+  .section-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.6875rem;
+    color: var(--text-300);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .section-label .num { color: var(--text-200); margin-left: 2px; }
+
+  h2.block-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 700;
+    font-size: 1.1875rem;
+    letter-spacing: -0.01em;
+    color: var(--text-600);
+    margin-bottom: 10px;
+  }
+  .lede { font-size: 0.875rem; color: var(--text-300); margin-bottom: 28px; max-width: 420px; line-height: 1.65; }
+
+  /* ---------- Inputs ---------- */
+  .input-group { margin-bottom: 26px; }
+  .input-group label {
+    display: block;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    font-size: 0.6875rem;
+    color: var(--text-300);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .field {
+    width: 100%;
+    background: rgba(27, 40, 56, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(58, 99, 130, 0.5);
+    padding: 11px 16px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.9375rem;
+    color: var(--text);
+    outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+  }
+  .field:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+  .field::placeholder { color: var(--text-200); font-size: 0.875rem; }
+
+  /* suggestions */
+  .suggestions {
+    margin-top: 0;
+    display: flex; flex-direction: column;
+    border: 1px solid rgba(42, 71, 94, 0.7);
+    border-top: none;
+    background: rgba(20, 30, 46, 0.82);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .suggestion {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    border-left: 3px solid transparent;
+    transition: background var(--transition), border-left-color var(--transition);
+  }
+  .suggestion:last-child { border-bottom: none; }
+  .suggestion:hover { background: var(--bg-600); border-left-color: var(--primary); }
+  .suggestion-thumb {
+    width: 56px; height: 32px;
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--surface);
+  }
+  .suggestion-body { flex: 1; min-width: 0; }
+  .suggestion-title {
+    font-size: 0.875rem; font-weight: 500; color: var(--text-600);
+    margin-bottom: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .suggestion-meta { font-size: 0.6875rem; color: var(--text-light); }
+  .suggestion-arrow {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.75rem; color: var(--text-200);
+    transition: color var(--transition), transform var(--transition);
+  }
+  .suggestion:hover .suggestion-arrow { color: var(--primary); transform: translateX(3px); }
+
+  .suggestions-label {
+    margin-top: 10px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.6875rem; font-weight: 500;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text-200);
+  }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* platform switcher */
+  .platforms { display: flex; gap: 3px; margin-top: 10px; flex-wrap: wrap; }
+  .plat {
+    flex: 1; min-width: 60px;
+    padding: 8px 8px;
+    border: 1px solid rgba(42, 71, 94, 0.6);
+    background: rgba(27, 40, 56, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.6875rem; font-weight: 500;
+    color: var(--text-300);
+    letter-spacing: 0.03em; text-transform: uppercase;
+    transition: all var(--transition); text-align: center;
+  }
+  .plat:hover { color: var(--text); border-color: var(--border-bright); }
+  .plat.on { background: var(--primary); color: #0a1520; border-color: var(--primary); }
+  .plat-price {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6875rem; font-weight: 400;
+    margin-top: 2px; opacity: 0.8;
+  }
+  .plat.on .plat-price { opacity: 1; }
+  .plat.unavailable { opacity: 0.22; cursor: not-allowed; }
+  .plat.unavailable:hover { color: var(--text-300); border-color: rgba(42, 71, 94, 0.6); background: rgba(27, 40, 56, 0.45); }
+
+  .price-manual { margin-top: 10px; font-size: 0.75rem; color: var(--text-300); }
+  .price-manual button {
+    background: none; border: none; color: var(--primary); cursor: pointer;
+    font-family: inherit; font-size: inherit; padding: 0;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+
+  /* Genre pills */
+  .pills { display: flex; flex-wrap: wrap; gap: 5px; }
+  .pill {
+    padding: 5px 11px;
+    border: 1px solid var(--border);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.6875rem; font-weight: 500;
+    letter-spacing: 0.03em; text-transform: uppercase;
+    color: var(--text-300); background: var(--bg-600);
+    cursor: pointer; transition: all var(--transition);
+  }
+  .pill:hover { color: var(--text); border-color: var(--border-bright); }
+  .pill.on { background: var(--primary-100); color: var(--primary); border-color: var(--primary); }
+
+  /* Calc button */
+  .btn-primary {
+    margin-top: 8px;
+    background: var(--primary); color: #081420;
+    border: none; padding: 13px 28px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.8125rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    cursor: pointer; transition: all var(--transition);
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .btn-primary:hover { background: #82d0f7; box-shadow: 0 0 18px rgba(102,192,244,0.35); }
+  .btn-primary .arrow { transition: transform var(--transition); }
+  .btn-primary:hover .arrow { transform: translateX(4px); }
+  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+  .btn-primary:disabled:hover { background: var(--primary); }
+  [data-theme="light"] .btn-primary { color: #ffffff; }
+  [data-theme="light"] .btn-primary:hover { background: #1254a0; box-shadow: 0 0 18px rgba(21,98,176,0.3); }
+  [data-theme="light"] .btn-primary:disabled:hover { background: var(--primary); }
+
+  /* ---------- Result ---------- */
+  .result { min-height: 600px; }
+
+  .empty-state { padding-top: 40px; border-top: 1px solid var(--border); }
+  .empty-state .frame-mark {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 700;
+    font-size: 6rem; line-height: 1;
+    color: var(--text-600); opacity: 0.04;
+    margin-bottom: 20px; letter-spacing: -0.03em;
+  }
+  .empty-state p { font-size: 0.9375rem; max-width: 380px; color: var(--text-300); line-height: 1.65; }
+  .empty-state .caveat {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500; font-size: 0.75rem;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--primary); margin-top: 24px; display: inline-block;
+  }
+
+  /* receipt */
+  .receipt { opacity: 0; animation: rise 0.4s ease forwards; }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* game header */
+  .receipt-header { position: relative; margin-bottom: 0; overflow: hidden; }
+  .capsule {
+    width: 100%; aspect-ratio: 460 / 215;
+    background: var(--surface) center/cover no-repeat;
+    position: relative;
+  }
+  .capsule::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(14,18,22,0) 25%, rgba(14,18,22,0.9) 100%);
+  }
+  .receipt-meta-over {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 20px 20px; z-index: 1;
+  }
+  .game-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 700; font-size: 1.5rem;
+    letter-spacing: -0.01em;
+    color: #ffffff; margin-bottom: 4px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+  }
+  .game-meta { font-size: 0.6875rem; color: rgba(198,212,223,0.75); letter-spacing: 0.04em; }
+  .game-meta span { color: var(--primary); }
+
+  /* verdict */
+  .verdict-block {
+    display: grid; grid-template-columns: auto 1fr;
+    gap: 20px; align-items: center;
+    padding: 20px;
+    background: rgba(22, 32, 45, 0.55);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(102, 192, 244, 0.12);
+    border-left: 4px solid var(--primary);
+    border-top: none;
+    box-shadow: 0 2px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+    margin-bottom: 28px;
+  }
+  .grade {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 700;
+    font-size: 5rem; line-height: 0.9;
+    letter-spacing: -0.04em;
+    min-width: 64px; text-align: center;
+  }
+  .grade[data-g="S"] { color: var(--gold); text-shadow: 0 0 24px rgba(245,197,24,0.5); }
+  .grade[data-g="A"] { color: var(--primary); text-shadow: 0 0 20px rgba(102,192,244,0.4); }
+  .grade[data-g="B"] { color: var(--positive); text-shadow: 0 0 18px rgba(164,208,7,0.35); }
+  .grade[data-g="C"] { color: var(--orange); text-shadow: none; }
+  .grade[data-g="D"] { color: var(--red); text-shadow: none; }
+
+  .score-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 2rem; color: var(--text-600);
+    line-height: 1; letter-spacing: -0.01em;
+  }
+  .score-num span { font-family: 'IBM Plex Mono', monospace; font-size: 0.875rem; color: var(--text-light); margin-left: 2px; }
+  .verdict-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500; font-size: 0.75rem;
+    color: var(--text-300); letter-spacing: 0.05em;
+    text-transform: uppercase; margin-top: 4px;
+  }
+
+  /* meter */
+  .meter { margin-top: 14px; }
+  .meter-track {
+    position: relative; height: 4px;
+    background: var(--bg-400); margin: 8px 0 6px;
+  }
+  .meter-fill {
+    position: absolute; left: 0; top: 0;
+    height: 100%; background: var(--primary);
+    transition: width 1.2s ease;
+    box-shadow: 0 0 8px rgba(102,192,244,0.5);
+  }
+  .meter-ticks {
+    display: flex; justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.5625rem; font-weight: 400;
+    color: var(--text-200); letter-spacing: 0;
+  }
+  .meter-marker { position: absolute; top: -6px; width: 1px; height: 16px; background: var(--border); }
+  .meter-marker.major { background: var(--border-bright); }
+
+  /* pillars */
+  .pillars { margin-bottom: 36px; }
+  .pillar {
+    display: grid; grid-template-columns: 28px 1fr 48px;
+    gap: 14px; align-items: center;
+    padding: 14px 0; padding-left: 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: padding var(--transition);
+  }
+  .pillar:hover { padding-left: 6px; }
+  .pillar:last-child { border-bottom: none; }
+  .pillar-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem; color: var(--text-200);
+    letter-spacing: 0; text-align: center;
+  }
+  .pillar-body { min-width: 0; }
+  .pillar-name {
+    font-size: 0.875rem; font-weight: 500;
+    color: var(--text); margin-bottom: 4px;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .pillar-weight {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.625rem; font-weight: 400;
+    color: var(--text-200); letter-spacing: 0;
+  }
+  .pillar-detail { font-size: 0.75rem; color: var(--text-300); line-height: 1.5; }
+  .pillar-bar-wrap { height: 2px; background: var(--border); margin-top: 8px; position: relative; }
+  .pillar-bar {
+    position: absolute; left: 0; top: -0.5px;
+    height: 3px; background: var(--text-200);
+    width: 0; transition: width 1s ease;
+  }
+  .pillar.high .pillar-bar { background: var(--primary); box-shadow: 0 0 6px rgba(102,192,244,0.4); }
+  .pillar-score {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.25rem; text-align: right;
+    color: var(--text); line-height: 1; letter-spacing: -0.01em;
+  }
+  .pillar.high .pillar-score { color: var(--primary); }
+
+  /* coffee callout */
+  .coffee {
+    margin-bottom: 28px;
+    padding: 18px 20px 20px;
+    background: rgba(15, 34, 51, 0.6);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid rgba(102, 192, 244, 0.14);
+    border-left: 3px solid var(--primary);
+    box-shadow: inset 0 1px 0 rgba(102, 192, 244, 0.08);
+  }
+  .coffee-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6875rem; font-weight: 400;
+    letter-spacing: 0;
+    color: var(--primary); margin-bottom: 10px;
+  }
+  .coffee-line { font-size: 0.9375rem; color: var(--text-300); line-height: 1.55; }
+  .coffee-line strong { color: var(--primary); font-weight: 600; }
+
+  /* hype */
+  .hype-block { margin-bottom: 36px; }
+  .hype-rows { display: grid; gap: 10px; margin-top: 18px; }
+  .hype-row {
+    display: grid; grid-template-columns: 64px 1fr 36px;
+    align-items: center; gap: 14px;
+  }
+  .hype-row .label-h {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 400; font-size: 0.6875rem;
+    color: var(--text-light); letter-spacing: 0;
+  }
+  .hype-bar-wrap { height: 6px; background: var(--bg-400); }
+  .hype-bar { height: 100%; background: var(--text-300); width: 0; transition: width 1s ease 0.2s; }
+  .hype-bar.user { background: var(--primary); }
+  .hype-bar.delta { background: var(--text-200); }
+  .hype-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1rem; color: var(--text);
+    text-align: right; letter-spacing: 0;
+  }
+
+  /* deal block */
+  .deal-block {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: rgba(42, 71, 94, 0.35); margin-bottom: 36px;
+  }
+  .deal-cell {
+    background: rgba(22, 32, 45, 0.55);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    padding: 18px;
+  }
+  .deal-cell .deal-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.6875rem; font-weight: 500;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text-light); margin-bottom: 8px;
+  }
+  .deal-cell .deal-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.375rem; color: var(--text-600);
+    line-height: 1; letter-spacing: -0.01em;
+  }
+  .deal-cell .deal-sub { font-size: 0.6875rem; color: var(--text-300); margin-top: 4px; }
+  .deal-cell.highlight .deal-value { color: var(--positive); }
+
+  /* receipt footer */
+  .receipt-foot {
+    padding-top: 18px;
+    border-top: 1px dashed var(--border);
+    font-size: 0.6875rem; color: var(--text-200); line-height: 1.65;
+  }
+  .receipt-foot p { margin-bottom: 4px; }
+
+  .page-foot {
+    margin-top: 96px; padding-top: 28px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500; font-size: 0.6875rem;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text-200);
+  }
+  .page-foot .accent { color: var(--primary); }
+
+  /* taste profile panel */
+  .taste-panel {
+    border: 1px solid var(--border);
+    background: var(--bg-600);
+    padding: 14px 16px;
+  }
+  .taste-hint {
+    color: var(--text-200);
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.6875rem;
+    margin-left: 6px;
+    font-weight: 400;
+  }
+  .taste-line { font-size: 0.8125rem; color: var(--text-300); margin-bottom: 12px; line-height: 1.55; }
+  .taste-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 10px; }
+  .taste-field { padding: 9px 12px; font-size: 0.8125rem; }
+  .taste-or {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6875rem; color: var(--text-200);
+    text-align: center; margin: 8px 0;
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 9px 14px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.75rem; font-weight: 500;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text); cursor: pointer;
+    transition: all var(--transition);
+  }
+  .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+  .taste-clear { padding: 5px 10px; font-size: 0.625rem; }
+  .taste-summary { display: flex; align-items: center; gap: 10px; flex: 1; flex-wrap: wrap; }
+  .taste-loaded { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .taste-mark { color: var(--positive); font-size: 0.625rem; }
+  #tasteName {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8125rem; color: var(--text-600);
+  }
+  .taste-genres {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.6875rem; color: var(--text-300);
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .taste-status { font-size: 0.6875rem; color: var(--text-light); margin-top: 8px; line-height: 1.5; }
+  .taste-status.error { color: var(--orange); }
+  .taste-status.loading { color: var(--primary); }
+
+  .taste-library {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border);
+    display: grid; gap: 12px;
+  }
+  .lib-stat-row {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: var(--border);
+  }
+  .lib-stat {
+    background: var(--bg-400); padding: 10px 12px;
+  }
+  .lib-stat-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.625rem; font-weight: 500;
+    color: var(--text-light); letter-spacing: 0.05em;
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .lib-stat-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.0625rem; color: var(--text-600); line-height: 1;
+    letter-spacing: -0.01em;
+  }
+  .lib-section-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.625rem; font-weight: 500;
+    color: var(--text-light); letter-spacing: 0.05em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .lib-played-list { display: grid; gap: 4px; }
+  .lib-played {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 12px; align-items: baseline;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.75rem;
+  }
+  .lib-played:last-child { border-bottom: none; }
+  .lib-played-title { color: var(--text); }
+  .lib-played-hours {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem; color: var(--primary); letter-spacing: 0;
+  }
+  .lib-genre-bars { display: grid; gap: 4px; }
+  .lib-genre-bar {
+    display: grid; grid-template-columns: 60px 1fr 44px;
+    gap: 8px; align-items: center;
+  }
+  .lib-genre-name {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.6875rem; color: var(--text-300);
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .lib-genre-track { height: 4px; background: var(--bg-400); }
+  .lib-genre-fill { height: 100%; background: var(--primary); width: 0; transition: width 0.6s ease; }
+  .lib-genre-hours {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6875rem; color: var(--text-light); text-align: right;
+    letter-spacing: 0;
+  }
+  .btn-ghost.loading {
+    pointer-events: none; opacity: 0.6;
+    position: relative; padding-right: 32px;
+  }
+  .btn-ghost.loading::after {
+    content: ''; position: absolute; right: 12px; top: 50%;
+    width: 10px; height: 10px;
+    margin-top: -5px;
+    border: 1.5px solid var(--text-300);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* favorites picker modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(8, 14, 20, 0.78);
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: rgba(18, 26, 40, 0.82);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    border: 1px solid rgba(42, 71, 94, 0.55);
+    box-shadow: 0 8px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
+    border-radius: 12px;
+    overflow: hidden;
+    width: min(560px, 92vw);
+    max-height: 80vh;
+    display: flex; flex-direction: column;
+  }
+  .modal-head {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-title {
+    font-weight: 700; font-size: 0.9375rem;
+    color: var(--text-600); letter-spacing: -0.01em;
+  }
+  .modal-close {
+    background: none; border: none; color: var(--text-300);
+    font-size: 1.25rem; cursor: pointer; padding: 0; width: 24px; height: 24px;
+    transition: color var(--transition);
+  }
+  .modal-close:hover { color: var(--primary); }
+  .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+  .modal-search { width: 100%; margin-bottom: 14px; }
+  .fav-grid { display: grid; grid-template-columns: 1fr; gap: 4px; }
+  .fav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    background: var(--bg-600);
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .fav-item:hover { border-color: var(--border-bright); }
+  .fav-item.picked { border-color: var(--primary); background: var(--primary-100); }
+  .fav-thumb { width: 48px; height: 28px; flex-shrink: 0; background-size: cover; background-position: center; background-color: var(--surface); }
+  .fav-body { flex: 1; min-width: 0; }
+  .fav-title { font-size: 0.8125rem; font-weight: 500; color: var(--text-600); }
+  .fav-meta { font-size: 0.625rem; color: var(--text-light); margin-top: 2px; }
+  .fav-check {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem; color: var(--text-200);
+  }
+  .fav-item.picked .fav-check { color: var(--primary); }
+  .modal-foot {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.75rem; color: var(--text-300);
+  }
+  .modal-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem; color: var(--text);
+  }
+
+  /* deals modal */
+  .deals-modal { width: min(760px, 96vw); }
+  .deals-filters {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center;
+  }
+  .deals-filter-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6875rem; letter-spacing: 0;
+    padding: 4px 10px;
+    background: var(--bg-600); border: 1px solid var(--border);
+    color: var(--text-300); cursor: pointer;
+    transition: all var(--transition);
+  }
+  .deals-filter-btn:hover { border-color: var(--border-bright); color: var(--text); }
+  .deals-filter-btn.active { border-color: var(--primary); color: var(--primary); background: var(--primary-100); }
+  .deals-sort {
+    margin-left: auto;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.6875rem;
+    padding: 4px 8px; background: var(--bg-600); border: 1px solid var(--border);
+    color: var(--text-300); cursor: pointer;
+  }
+  .deals-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+  }
+  .deal-card {
+    background: var(--bg-600); border: 1px solid var(--border);
+    cursor: pointer; transition: border-color var(--transition);
+    display: flex; flex-direction: column;
+  }
+  .deal-card:hover { border-color: var(--border-bright); }
+  .deal-thumb {
+    width: 100%; aspect-ratio: 460 / 215;
+    background-size: cover; background-position: center;
+    background-color: var(--surface);
+    position: relative;
+  }
+  .deal-badge {
+    position: absolute; top: 6px; left: 6px;
+    background: var(--orange); color: #000;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0;
+    padding: 2px 6px;
+  }
+  .deal-info { padding: 10px 12px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .deal-title {
+    font-size: 0.8125rem; font-weight: 600; color: var(--text-600);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .deal-genre { font-size: 0.625rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.04em; }
+  .deal-prices {
+    margin-top: auto; display: flex; align-items: baseline; gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .deal-price-was { font-size: 0.6875rem; color: var(--text-200); text-decoration: line-through; }
+  .deal-price-now { font-size: 0.9375rem; color: var(--orange); font-weight: 700; }
+  .deals-empty { color: var(--text-200); font-size: 0.875rem; padding: 20px 0; text-align: center; }
+  .deals-cta {
+    margin-top: 8px;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 0.6875rem;
+    color: var(--text-light);
+  }
+
+  .steam-key-hint {
+    margin-top: 8px;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 0.6875rem;
+    color: var(--text-light);
+    display: flex; align-items: center; gap: 6px;
+  }
+  #steamKeyStatus { color: var(--positive); }
+  .steam-key-form-row { margin-top: 8px; }
+
+  /* taste-matched suggestion badge */
+  .suggestion-match {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.5625rem; color: var(--positive);
+    letter-spacing: 0; margin-top: 2px;
+    text-transform: lowercase;
+  }
+
+  /* RAWG live search */
+  .rawg-cta {
+    margin-top: 10px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.6875rem;
+    color: var(--text-light);
+    letter-spacing: 0.02em;
+    line-height: 1.6;
+  }
+  .rawg-cta strong { color: var(--text); font-weight: 500; }
+  .link-btn {
+    background: none; border: none; padding: 0;
+    color: var(--primary); cursor: pointer;
+    font-family: inherit; font-size: inherit;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .link-btn:hover { color: #82d0f7; }
+  .rawg-key-form {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 6px;
+  }
+  .rawg-key-form .field { padding: 8px 12px; font-size: 0.8125rem; }
+  .rawg-status {
+    margin-top: 10px;
+    font-size: 0.6875rem;
+    color: var(--text-light);
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .rawg-status.error { color: var(--orange); }
+  .rawg-mark { color: var(--positive); font-size: 0.625rem; }
+  .suggestion-live {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.5rem;
+    color: var(--positive);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid var(--positive);
+    padding: 1px 5px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .suggestion.loading {
+    pointer-events: none; opacity: 0.6;
+  }
+  .suggestions-loader {
+    padding: 10px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6875rem;
+    color: var(--primary);
+    letter-spacing: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* deals shortcut in label */
+  .label-with-action { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .label-with-action > span {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500; font-size: 0.6875rem;
+    color: var(--text-300); letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .deals-shortcut {
+    background: rgba(248, 168, 25, 0.12);
+    border: 1px solid rgba(248, 168, 25, 0.4);
+    padding: 7px 18px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.75rem; font-weight: 600;
+    color: var(--orange);
+    cursor: pointer; transition: all var(--transition);
+    letter-spacing: 0.02em;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .deals-shortcut:hover {
+    background: rgba(248, 168, 25, 0.22);
+    border-color: var(--orange);
+    box-shadow: 0 0 14px rgba(248, 168, 25, 0.2);
+  }
+  [data-theme="light"] .deals-shortcut {
+    background: rgba(248, 168, 25, 0.1);
+    border-color: rgba(200, 130, 10, 0.45);
+    color: #b86a00;
+  }
+  [data-theme="light"] .deals-shortcut:hover {
+    background: rgba(248, 168, 25, 0.18);
+    border-color: #b86a00;
+    box-shadow: 0 0 14px rgba(180, 100, 0, 0.18);
+  }
+
+  /* hype verdict summary */
+  .hype-verdict {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: var(--bg-600);
+    border-left: 3px solid var(--text-200);
+    font-size: 0.8125rem; color: var(--text-300); line-height: 1.55;
+  }
+  .hype-verdict.gap-small { border-left-color: var(--positive); }
+  .hype-verdict.gap-medium { border-left-color: var(--orange); }
+  .hype-verdict.gap-large { border-left-color: var(--red); }
+  .hype-verdict strong { color: var(--text); font-weight: 600; }
+
+  /* price bar chart */
+  .price-bars { margin-bottom: 6px; padding-bottom: 16px; }
+  .price-bars-title {
+    font-family: 'IBM Plex Sans', sans-serif; font-weight: 500;
+    font-size: 0.6875rem; color: var(--text-300);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .price-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .price-bar-label {
+    width: 72px; flex-shrink: 0;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.625rem;
+    color: var(--text-300); letter-spacing: 0;
+  }
+  .price-bar-track { flex: 1; height: 6px; background: var(--bg-400); position: relative; }
+  .price-bar-fill { position: absolute; left: 0; top: 0; height: 100%; width: 0; transition: width 1s ease 0.3s; }
+  .price-bar-fill.is-launch { background: var(--border-bright); }
+  .price-bar-fill.is-current { background: var(--orange); box-shadow: 0 0 6px rgba(248,168,25,0.4); }
+  .price-bar-fill.is-low { background: var(--positive); box-shadow: 0 0 6px rgba(164,208,7,0.35); }
+  .price-bar-val {
+    width: 60px; text-align: right; flex-shrink: 0;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem;
+    color: var(--text-600); letter-spacing: 0;
+  }
+  .price-bar-row.is-low .price-bar-val { color: var(--positive); }
+  .price-bar-row.is-current .price-bar-val { color: var(--orange); }
+
+  /* ---- How It Works page ---- */
+  .how-view { padding-top: 40px; padding-bottom: 100px; }
+  .how-header { margin-bottom: 56px; max-width: 640px; }
+  .how-header h2 { font-size: clamp(1.75rem, 2.8vw, 2.5rem); font-weight: 700; letter-spacing: -0.02em; color: var(--text-600); margin-bottom: 14px; line-height: 1.1; }
+  .how-header h2 em { font-style: italic; color: var(--primary); }
+  .how-header p { font-size: 0.9375rem; color: var(--text-300); line-height: 1.7; }
+
+  .how-formula-block { background: var(--surface); border: 1px solid var(--border); padding: 28px 32px; margin-bottom: 56px; }
+  .how-fb-label { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-200); margin-bottom: 16px; }
+  .how-formula-eq { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .hf-term { font-family: 'IBM Plex Mono', monospace; font-size: 1.25rem; font-weight: 500; padding: 8px 16px; border: 1px solid var(--border); line-height: 1; }
+  .hf-term small { font-size: 0.625rem; color: var(--text-200); display: block; line-height: 1.4; font-weight: 400; font-family: 'IBM Plex Sans', sans-serif; }
+  .hf-op { font-family: 'IBM Plex Mono', monospace; font-size: 1.125rem; color: var(--text-200); }
+  .hf-term.c1 { color: var(--gold); border-color: rgba(245,197,24,0.28); background: rgba(245,197,24,0.06); }
+  .hf-term.c2 { color: var(--primary); border-color: rgba(102,192,244,0.28); background: rgba(102,192,244,0.06); }
+  .hf-term.c3 { color: var(--positive); border-color: rgba(164,208,7,0.28); background: rgba(164,208,7,0.06); }
+  .hf-term.c4 { color: var(--orange); border-color: rgba(248,168,25,0.28); background: rgba(248,168,25,0.06); }
+  .hf-term.c5 { color: #f87c42; border-color: rgba(248,124,66,0.28); background: rgba(248,124,66,0.06); }
+
+  .how-weights { display: grid; grid-template-columns: 200px 1fr; gap: 48px; align-items: center; margin-bottom: 56px; }
+  .how-donut-wrap { position: relative; width: 180px; height: 180px; }
+  .how-donut-svg { width: 180px; height: 180px; display: block; }
+  .how-donut-seg { transition: stroke-width 0.18s ease, opacity 0.18s ease; cursor: pointer; }
+  .how-donut-seg:hover, .how-donut-seg.active { stroke-width: 5.5; }
+  .how-donut-seg.dimmed { opacity: 0.25; }
+  .how-legend { display: flex; flex-direction: column; gap: 8px; }
+  .how-leg-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border: 1px solid var(--border); border-left-width: 3px; }
+  .how-leg-item[data-c="1"] { border-left-color: var(--gold); }
+  .how-leg-item[data-c="2"] { border-left-color: var(--primary); }
+  .how-leg-item[data-c="3"] { border-left-color: var(--positive); }
+  .how-leg-item[data-c="4"] { border-left-color: var(--orange); }
+  .how-leg-item[data-c="5"] { border-left-color: #f87c42; }
+  .hl-roman { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--text-200); width: 24px; flex-shrink: 0; }
+  .hl-name { flex: 1; font-size: 0.875rem; font-weight: 500; color: var(--text); }
+  .hl-pct { font-family: 'IBM Plex Mono', monospace; font-size: 1rem; font-weight: 500; color: var(--text-600); }
+
+  .how-pillars { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1px; background: var(--bg); margin-bottom: 56px; }
+  .how-pc { background: var(--surface); padding: 24px; }
+  .how-pc-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .how-pc-roman { font-family: 'IBM Plex Mono', monospace; font-size: 0.875rem; color: var(--text-200); width: 20px; flex-shrink: 0; }
+  .how-pc-name { flex: 1; font-size: 0.9375rem; font-weight: 600; color: var(--text-600); }
+  .how-pc-w { font-family: 'IBM Plex Mono', monospace; font-size: 0.875rem; }
+  .how-pc[data-c="1"] .how-pc-w { color: var(--gold); }
+  .how-pc[data-c="2"] .how-pc-w { color: var(--primary); }
+  .how-pc[data-c="3"] .how-pc-w { color: var(--positive); }
+  .how-pc[data-c="4"] .how-pc-w { color: var(--orange); }
+  .how-pc[data-c="5"] .how-pc-w { color: #f87c42; }
+  .how-pc-desc { font-size: 0.8125rem; color: var(--text-300); line-height: 1.6; margin-bottom: 16px; }
+  .how-formula-chip { background: var(--bg-600); border: 1px solid var(--border); padding: 8px 12px; margin-bottom: 14px; overflow-x: auto; }
+  .how-formula-chip code { font-family: 'IBM Plex Mono', monospace; font-size: 0.6875rem; color: var(--text); letter-spacing: 0; white-space: nowrap; display: block; }
+
+  .how-bars { display: flex; flex-direction: column; gap: 5px; }
+  .how-bar-row { display: grid; grid-template-columns: 80px 1fr 28px; align-items: center; gap: 8px; }
+  .hbr-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.5625rem; color: var(--text-200); letter-spacing: 0; }
+  .hbr-track { height: 3px; background: var(--border); position: relative; overflow: hidden; }
+  .hbr-fill { height: 3px; position: absolute; left: 0; top: 0; transition: width 0.8s ease; }
+  .how-pc[data-c="1"] .hbr-fill { background: var(--gold); }
+  .hbr-val { font-family: 'IBM Plex Mono', monospace; font-size: 0.5625rem; color: var(--text-300); text-align: right; letter-spacing: 0; }
+
+  .how-density-ex { display: flex; flex-direction: column; gap: 8px; }
+  .how-de-row { display: flex; align-items: center; gap: 10px; }
+  .hde-label { font-size: 0.6875rem; color: var(--text-300); flex: 0 0 110px; }
+  .hde-bar { height: 3px; background: var(--primary); }
+  .hde-note { font-family: 'IBM Plex Mono', monospace; font-size: 0.5625rem; color: var(--text-200); white-space: nowrap; }
+
+  .how-ov-rows { display: flex; flex-direction: column; gap: 6px; }
+  .how-ov-row { display: grid; grid-template-columns: 100px 1fr 28px; align-items: center; gap: 8px; }
+  .hov-label { font-size: 0.6875rem; color: var(--text-300); }
+  .hov-meter { height: 3px; background: var(--border); position: relative; overflow: hidden; }
+  .hov-fill { position: absolute; left: 0; top: 0; height: 3px; background: var(--positive); }
+  .hov-val { font-family: 'IBM Plex Mono', monospace; font-size: 0.5625rem; color: var(--text-300); text-align: right; letter-spacing: 0; }
+
+  .how-gap-rows { display: flex; flex-direction: column; gap: 6px; }
+  .how-gap-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 7px 10px; background: var(--bg-600); border: 1px solid var(--border); }
+  .hgr-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.625rem; color: var(--text-300); letter-spacing: 0; }
+  .hgr-gap { font-size: 0.6875rem; font-weight: 600; white-space: nowrap; }
+  .hgr-gap.aligned { color: var(--positive); }
+  .hgr-gap.slight { color: var(--orange); }
+  .hgr-gap.major { color: var(--red); }
+
+  .how-deal-track { position: relative; height: 4px; background: linear-gradient(to right, var(--positive), var(--orange) 50%, var(--red)); margin: 8px 0 28px; }
+  .how-ds-marker { position: absolute; top: -4px; width: 2px; height: 12px; background: var(--surface); transform: translateX(-50%); }
+  .how-ds-marker span { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); font-family: 'IBM Plex Mono', monospace; font-size: 0.5625rem; color: var(--text-200); white-space: nowrap; letter-spacing: 0; }
+  .how-deal-vals { display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 0.625rem; color: var(--text-300); letter-spacing: 0; }
+
+  .how-grades-section { margin-bottom: 48px; }
+  .how-grades-section .section-label { margin-bottom: 20px; }
+  .how-grades { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border); }
+  .how-grade-item { background: var(--surface); padding: 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .hgi-letter { font-size: 2rem; font-weight: 700; line-height: 1; font-family: 'IBM Plex Mono', monospace; }
+  .how-grade-item[data-g="S"] .hgi-letter { color: var(--gold); text-shadow: 0 0 20px rgba(245,197,24,0.4); }
+  .how-grade-item[data-g="A"] .hgi-letter { color: var(--primary); }
+  .how-grade-item[data-g="B"] .hgi-letter { color: var(--positive); }
+  .how-grade-item[data-g="C"] .hgi-letter { color: var(--orange); }
+  .how-grade-item[data-g="D"] .hgi-letter { color: var(--red); }
+  .hgi-range { font-family: 'IBM Plex Mono', monospace; font-size: 0.6875rem; color: var(--text-200); letter-spacing: 0; }
+  .hgi-label { font-size: 0.6875rem; color: var(--text-300); text-align: center; line-height: 1.4; }
+  .how-back { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--border); }
+  .how-topnav { display: flex; align-items: center; gap: 10px; margin-bottom: 40px; }
+  .how-back-btn { background: none; border: 1px solid var(--border); padding: 7px 16px; font-family: 'IBM Plex Sans', sans-serif; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.04em; color: var(--text-300); cursor: pointer; transition: all var(--transition); display: inline-flex; align-items: center; gap: 8px; }
+  .how-back-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .how-topnav-sep { color: var(--text-200); font-size: 0.75rem; }
+  .how-topnav-current { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text); }
+  .how-pillars { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1px; background: var(--bg); margin-bottom: 56px; }
+  .how-ds-label-row { display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 0.5625rem; color: var(--text-200); letter-spacing: 0; margin-bottom: 8px; }
+
+  /* ---- Interactivity ---- */
+  .hf-term { cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
+  .hf-term:hover, .hf-term.active { transform: translateY(-3px); }
+  .hf-term.c1:hover, .hf-term.c1.active { box-shadow: 0 6px 20px rgba(245,197,24,0.35); border-color: rgba(245,197,24,0.6); }
+  .hf-term.c2:hover, .hf-term.c2.active { box-shadow: 0 6px 20px rgba(102,192,244,0.35); border-color: rgba(102,192,244,0.6); }
+  .hf-term.c3:hover, .hf-term.c3.active { box-shadow: 0 6px 20px rgba(164,208,7,0.35); border-color: rgba(164,208,7,0.6); }
+  .hf-term.c4:hover, .hf-term.c4.active { box-shadow: 0 6px 20px rgba(248,168,25,0.35); border-color: rgba(248,168,25,0.6); }
+  .hf-term.c5:hover, .hf-term.c5.active { box-shadow: 0 6px 20px rgba(248,124,66,0.35); border-color: rgba(248,124,66,0.6); }
+
+  .how-leg-item { cursor: pointer; transition: background 0.15s ease, border-left-color 0.15s ease, transform 0.15s ease; }
+  .how-leg-item:hover, .how-leg-item.active { background: var(--bg-400); transform: translateX(4px); }
+  .how-leg-item.dimmed { opacity: 0.35; }
+
+  .how-pc { transition: background 0.15s ease, box-shadow 0.15s ease; cursor: default; }
+  .how-pc.active { background: var(--bg-400); }
+  .how-pc[data-c="1"].active { box-shadow: inset 0 0 0 1px rgba(245,197,24,0.5); }
+  .how-pc[data-c="2"].active { box-shadow: inset 0 0 0 1px rgba(102,192,244,0.5); }
+  .how-pc[data-c="3"].active { box-shadow: inset 0 0 0 1px rgba(164,208,7,0.5); }
+  .how-pc[data-c="4"].active { box-shadow: inset 0 0 0 1px rgba(248,168,25,0.5); }
+  .how-pc[data-c="5"].active { box-shadow: inset 0 0 0 1px rgba(248,124,66,0.5); }
+  .how-pc.dimmed { opacity: 0.4; }
+
+  .how-grade-item { transition: background 0.15s ease; cursor: default; }
+  .how-grade-item:hover { background: var(--bg-400); }
+  .how-grade-item[data-g="S"]:hover { background: rgba(245,197,24,0.1); }
+  .how-grade-item[data-g="A"]:hover { background: rgba(102,192,244,0.1); }
+  .how-grade-item[data-g="B"]:hover { background: rgba(164,208,7,0.1); }
+  .how-grade-item[data-g="C"]:hover { background: rgba(248,168,25,0.1); }
+  .how-grade-item[data-g="D"]:hover { background: rgba(255,107,107,0.1); }
+  .how-grade-item:hover .hgi-letter { filter: drop-shadow(0 0 8px currentColor); }
+
+  .how-bar-row { border-radius: 0; padding: 4px 6px; margin: 0 -6px; transition: background 0.12s ease; cursor: default; }
+  .how-bar-row:hover { background: var(--bg-400); }
+  .how-bar-row:hover .hbr-label { color: var(--text); }
+  .how-bar-row:hover .hbr-val { color: var(--text-600); }
+
+  .how-ov-row { padding: 3px 6px; margin: 0 -6px; transition: background 0.12s ease; cursor: default; }
+  .how-ov-row:hover { background: var(--bg-400); }
+  .how-ov-row:hover .hov-label { color: var(--text); }
+
+  .how-gap-row { transition: background 0.15s ease, border-color 0.15s ease; cursor: default; }
+  .how-gap-row:hover { background: var(--bg-400); border-color: var(--border-bright); }
+
+  .how-ds-marker { transition: height 0.15s ease; cursor: default; }
+  .how-deal-track:hover .how-ds-marker { height: 16px; }
+
+  @media (max-width: 640px) {
+    .how-weights { grid-template-columns: 1fr; }
+    .how-grades { grid-template-columns: repeat(3, 1fr); }
+    .how-pillars { grid-template-columns: 1fr; }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
+
+  /* responsive */
+  @media (max-width: 1100px) {
+    :root { --frame-pad: 36px; }
+    .grid { grid-template-columns: 1fr; gap: 48px; }
+  }
+  @media (max-width: 640px) {
+    :root { --frame-pad: 16px; }
+    .nav { margin-bottom: 0; }
+    .hero { margin-bottom: 48px; padding-top: 220px; }
+    .hero-visual { height: 480px; }
+    .grade { font-size: 4.5rem; }
+    .row { grid-template-columns: 1fr; }
+    .deal-block { grid-template-columns: 1fr; }
+    .nav-links a:not([id]) { display: none; }
+  }
+
+  /* View Transition */
+  ::view-transition-old(root) { animation: none; }
+  ::view-transition-new(root) {
+    animation: clip-in 700ms ease;
+    clip-path: circle(0% at var(--toggle-x, 90%) var(--toggle-y, 5%));
+  }
+  @keyframes clip-in {
+    from { clip-path: circle(0% at var(--toggle-x, 90%) var(--toggle-y, 5%)); }
+    to { clip-path: circle(160% at var(--toggle-x, 90%) var(--toggle-y, 5%)); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-layer" aria-hidden="true"></div>
+
+<div class="frame">
+
+  <div class="hero-visual" aria-hidden="true"></div>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-brand">Game Buying Decision</div>
+    <div class="nav-links">
+      <a href="#" id="navHow">how it scores</a>
+      <select class="ccy-select" id="ccySelect" aria-label="Currency">
+        <option value="USD">USD $</option>
+        <option value="IDR">IDR Rp</option>
+        <option value="EUR">EUR €</option>
+        <option value="GBP">GBP £</option>
+        <option value="SGD">SGD S$</option>
+        <option value="JPY">JPY ¥</option>
+      </select>
+      <button class="theme-toggle" aria-label="Toggle theme" id="themeToggle">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <div id="main-view">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-eyebrow">a quiet calculator for noisy purchases</div>
+    <h1>How <em>worth it</em> is buying<br>that game, really?</h1>
+    <p>Not by hype, not by sale-tag adrenaline. By the only metric that survives the credits roll — hours of joy per dollar spent, weighted against your taste.</p>
+  </section>
+
+  <!-- GRID -->
+  <div class="grid">
+
+    <!-- LEFT -->
+    <section>
+      <div class="section-label">Input <span class="num">/ 01</span></div>
+      <h2 class="block-title">What are you eyeing?</h2>
+      <p class="lede">Search a title — we'll fetch playtime, price across platforms, and review aggregates from the usual suspects.</p>
+
+      <div class="input-group">
+        <div class="label-with-action">
+          <span>Game title</span>
+          <button class="deals-shortcut" id="dealsOpen">🔥 browse on sale</button>
+        </div>
+        <input id="game" class="field" type="text" placeholder="e.g. Elden Ring" autocomplete="off">
+        <div class="suggestions-label" id="suggestionsLabel">— popular right now</div>
+        <div class="suggestions" id="suggestionsList"></div>
+        <div class="rawg-cta" id="rawgCta">
+          Searching <strong id="rawgDbCount">50</strong> indexed titles · <button class="link-btn" id="rawgEnable">connect RAWG to search 500k+ →</button>
+        </div>
+        <div class="rawg-key-form" id="rawgKeyForm" style="display:none;">
+          <input id="rawgKeyInput" class="field" type="text" placeholder="paste RAWG API key — free at rawg.io/apidocs">
+          <button class="btn-ghost" id="rawgKeySave">Save</button>
+          <button class="btn-ghost" id="rawgKeyCancel">Cancel</button>
+        </div>
+        <div class="rawg-status" id="rawgStatus" style="display:none;">
+          <span class="rawg-mark">●</span><span id="rawgStatusText">Live search via RAWG</span> · <button class="link-btn" id="rawgDisconnect">disconnect</button>
+        </div>
+      </div>
+
+      <div id="pickedInfo" style="display:none;">
+        <div class="input-group">
+          <label>Platform · price</label>
+          <div class="platforms" id="platformList"></div>
+          <div class="price-manual">
+            or <button id="manualPriceBtn">enter price manually</button>
+          </div>
+          <input id="priceManual" class="field" type="number" placeholder="0.00" step="0.01" min="0" style="display:none; margin-top: 12px;">
+        </div>
+
+        <div class="input-group">
+          <label>Estimated playtime <span style="color:var(--text-200); text-transform:none; letter-spacing:0; font-size:0.6875rem; margin-left:4px; font-family:'IBM Plex Sans',sans-serif; font-weight:400;">via HowLongToBeat</span></label>
+          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0; border:1px solid var(--border); margin-top:4px;">
+            <div style="padding:14px 16px; background:var(--bg-600);">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:1.5rem; color:var(--text-600); line-height:1; letter-spacing:-0.01em;" id="hMain">—</div>
+              <div style="font-family:'IBM Plex Sans',sans-serif; font-size:0.625rem; font-weight:500; color:var(--text-200); letter-spacing:0.05em; text-transform:uppercase; margin-top:6px;">main story</div>
+            </div>
+            <div style="padding:14px 16px; background:var(--bg-600); border-left:1px solid var(--border);">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:1.5rem; color:var(--text-600); line-height:1; letter-spacing:-0.01em;" id="hExtra">—</div>
+              <div style="font-family:'IBM Plex Sans',sans-serif; font-size:0.625rem; font-weight:500; color:var(--text-200); letter-spacing:0.05em; text-transform:uppercase; margin-top:6px;">+ extras</div>
+            </div>
+            <div style="padding:14px 16px; background:var(--bg-600); border-left:1px solid var(--border);">
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:1.5rem; color:var(--text-600); line-height:1; letter-spacing:-0.01em;" id="hComp">—</div>
+              <div style="font-family:'IBM Plex Sans',sans-serif; font-size:0.625rem; font-weight:500; color:var(--text-200); letter-spacing:0.05em; text-transform:uppercase; margin-top:6px;">100% complete</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>Your taste profile <span class="taste-hint">— optional, sharpens the score</span></label>
+        <div class="taste-panel">
+          <div id="tasteEmpty">
+            <p class="taste-line">Paste your Steam profile — we'll fetch your hours and derive your taste automatically. Library must be set to <em>Public</em> in Steam privacy settings.</p>
+            <div class="taste-row">
+              <input id="steamUrl" class="field taste-field" type="text" placeholder="steamcommunity.com/id/yourname  ·  or 17-digit Steam ID">
+              <button class="btn-ghost" id="steamConnect">Fetch library</button>
+            </div>
+            <div class="steam-key-hint" id="steamKeyHint">
+              <span id="steamKeyStatus"></span>
+              <button class="link-btn" id="steamKeyToggle">add Steam API key →</button>
+            </div>
+            <div class="steam-key-form-row" id="steamKeyFormRow" style="display:none;">
+              <input id="steamKeyInput" class="field" type="text" placeholder="Steam Web API key — free at steamcommunity.com/dev/apikey">
+              <div style="display:flex; gap:6px; margin-top:8px;">
+                <button class="btn-ghost" id="steamKeySave">Save key</button>
+                <button class="btn-ghost" id="steamKeyCancel">Cancel</button>
+              </div>
+            </div>
+            <div class="taste-or">— or skip the fetch —</div>
+            <button class="btn-ghost" id="pickFavorites" style="width:100%;">Pick favorites manually</button>
+            <div class="taste-status" id="tasteStatus"></div>
+          </div>
+          <div id="tasteLoaded" style="display:none;">
+            <div class="taste-loaded">
+              <div class="taste-summary">
+                <span class="taste-mark">●</span>
+                <span id="tasteName">your taste</span>
+                <span class="taste-genres" id="tasteGenres"></span>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <button class="btn-ghost taste-clear" id="tasteEdit">Edit</button>
+                <button class="btn-ghost taste-clear" id="tasteRefresh" style="display:none;">Refresh</button>
+                <button class="btn-ghost taste-clear" id="tasteClear">Reset</button>
+              </div>
+            </div>
+            <div id="tasteLibrary" class="taste-library" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>What do you actually play? <span class="taste-hint" id="tasteAutoHint" style="display:none;">— auto-filled from taste, edit freely</span></label>
+        <div class="pills" id="genrePills">
+          <button class="pill" data-g="rpg">rpg</button>
+          <button class="pill" data-g="souls">souls-like</button>
+          <button class="pill" data-g="shooter">shooter</button>
+          <button class="pill" data-g="strategy">strategy</button>
+          <button class="pill" data-g="story">story-driven</button>
+          <button class="pill" data-g="multiplayer">multiplayer</button>
+          <button class="pill" data-g="indie">indie</button>
+          <button class="pill" data-g="open">open-world</button>
+          <button class="pill" data-g="roguelike">roguelike</button>
+          <button class="pill" data-g="racing">racing</button>
+          <button class="pill" data-g="puzzle">puzzle</button>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="calcBtn" disabled>
+        Calculate <span class="arrow">→</span>
+      </button>
+    </section>
+
+    <!-- RIGHT -->
+    <section class="result" id="result">
+
+      <div id="emptyState" class="empty-state">
+        <p>Pick a title from the list, choose your platform, and your verdict appears here. Less a score, more a second opinion — the kind from a friend who doesn't get hyped.</p>
+        <div class="caveat">→ select a game to begin</div>
+      </div>
+
+      <div id="receipt" class="receipt" style="display:none;">
+
+        <div class="receipt-header">
+          <div class="capsule" id="rCapsule"></div>
+          <div class="receipt-meta-over">
+            <div class="game-title" id="rTitle">—</div>
+            <div class="game-meta" id="rMeta">—</div>
+          </div>
+        </div>
+
+        <div class="verdict-block">
+          <div class="grade" id="rGrade">—</div>
+          <div class="verdict-text">
+            <div class="score-num"><span id="rScore">0</span><span>/100</span></div>
+            <div class="verdict-label" id="rVerdict">calculating</div>
+            <div class="meter">
+              <div class="meter-ticks">
+                <span>skip</span><span>sale</span><span>fair</span><span>buy</span><span>must</span>
+              </div>
+              <div class="meter-track">
+                <div class="meter-marker" style="left:0%"></div>
+                <div class="meter-marker major" style="left:25%"></div>
+                <div class="meter-marker" style="left:50%"></div>
+                <div class="meter-marker major" style="left:75%"></div>
+                <div class="meter-marker" style="left:100%"></div>
+                <div class="meter-fill" id="rMeter" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="coffee">
+          <div class="coffee-label">// the coffee metric</div>
+          <div class="coffee-line" id="rCoffee">—</div>
+        </div>
+
+        <div class="section-label">Breakdown <span class="num">/ 02</span></div>
+        <div class="pillars" id="rPillars">
+          <div class="pillar" data-id="cost">
+            <div class="pillar-num">I</div>
+            <div class="pillar-body">
+              <div class="pillar-name">Cost efficiency <span class="pillar-weight">25%</span></div>
+              <div class="pillar-detail" id="dCost">—</div>
+              <div class="pillar-bar-wrap"><div class="pillar-bar" id="bCost"></div></div>
+            </div>
+            <div class="pillar-score" id="sCost">—</div>
+          </div>
+          <div class="pillar" data-id="quality">
+            <div class="pillar-num">II</div>
+            <div class="pillar-body">
+              <div class="pillar-name">Quality density <span class="pillar-weight">20%</span></div>
+              <div class="pillar-detail" id="dQuality">—</div>
+              <div class="pillar-bar-wrap"><div class="pillar-bar" id="bQuality"></div></div>
+            </div>
+            <div class="pillar-score" id="sQuality">—</div>
+          </div>
+          <div class="pillar" data-id="genre">
+            <div class="pillar-num">III</div>
+            <div class="pillar-body">
+              <div class="pillar-name">Genre fit <span class="pillar-weight">20%</span></div>
+              <div class="pillar-detail" id="dGenre">—</div>
+              <div class="pillar-bar-wrap"><div class="pillar-bar" id="bGenre"></div></div>
+            </div>
+            <div class="pillar-score" id="sGenre">—</div>
+          </div>
+          <div class="pillar" data-id="hype">
+            <div class="pillar-num">IV</div>
+            <div class="pillar-body">
+              <div class="pillar-name">Hype vs. reality <span class="pillar-weight">20%</span></div>
+              <div class="pillar-detail" id="dHype">—</div>
+              <div class="pillar-bar-wrap"><div class="pillar-bar" id="bHype"></div></div>
+            </div>
+            <div class="pillar-score" id="sHype">—</div>
+          </div>
+          <div class="pillar" data-id="deal">
+            <div class="pillar-num">V</div>
+            <div class="pillar-body">
+              <div class="pillar-name">Deal value <span class="pillar-weight">15%</span></div>
+              <div class="pillar-detail" id="dDeal">—</div>
+              <div class="pillar-bar-wrap"><div class="pillar-bar" id="bDeal"></div></div>
+            </div>
+            <div class="pillar-score" id="sDeal">—</div>
+          </div>
+        </div>
+
+        <div class="hype-block">
+          <div class="section-label">Hype vs. Reality <span class="num">/ 03</span></div>
+          <p class="lede">When critics and players disagree, it tells you something. A wide gap is rarely the player's fault.</p>
+          <div class="hype-rows" id="rHype">
+            <div class="hype-row">
+              <span class="label-h">critics</span>
+              <div class="hype-bar-wrap"><div class="hype-bar" id="hCritic"></div></div>
+              <span class="hype-num" id="hCriticN">—</span>
+            </div>
+            <div class="hype-row">
+              <span class="label-h">players</span>
+              <div class="hype-bar-wrap"><div class="hype-bar user" id="hUser"></div></div>
+              <span class="hype-num" id="hUserN">—</span>
+            </div>
+            <div class="hype-row">
+              <span class="label-h">delta</span>
+              <div class="hype-bar-wrap"><div class="hype-bar delta" id="hDelta"></div></div>
+              <span class="hype-num" id="hDeltaN">—</span>
+            </div>
+          </div>
+          <div class="hype-verdict" id="rHypeVerdict"></div>
+        </div>
+
+        <div class="section-label">Price archaeology <span class="num">/ 04</span></div>
+        <div class="price-bars" id="rPriceBars" style="display:none;"></div>
+        <div class="deal-block">
+          <div class="deal-cell">
+            <div class="deal-label">paying now</div>
+            <div class="deal-value" id="dPaying">—</div>
+            <div class="deal-sub" id="dPayingSub">—</div>
+          </div>
+          <div class="deal-cell highlight">
+            <div class="deal-label">historical low</div>
+            <div class="deal-value" id="dLow">—</div>
+            <div class="deal-sub" id="dLowSub">—</div>
+          </div>
+          <div class="deal-cell">
+            <div class="deal-label">launch price</div>
+            <div class="deal-value" id="dLaunch">—</div>
+            <div class="deal-sub" id="dLaunchSub">—</div>
+          </div>
+        </div>
+
+        <div class="receipt-foot">
+          <p>Hours via HowLongToBeat community averages · Prices via Steam, PlayStation Store, Xbox Marketplace, Nintendo eShop & Deku Deals · Reviews aggregated from Metacritic critic & user scores.</p>
+          <p>Score is opinionated. So is taste.</p>
+        </div>
+
+      </div>
+
+    </section>
+
+  </div>
+
+  <footer class="page-foot">
+    <div>An interactive sketch by <span class="accent">Shaflian</span> · vibe-coded</div>
+    <div>Game Buying Decision v0.8</div>
+  </footer>
+
+  </div><!-- /main-view -->
+
+  <!-- HOW IT WORKS PAGE -->
+  <div id="how-view" class="how-view" style="display:none;">
+
+    <div class="how-topnav">
+      <button class="how-back-btn">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Calculator
+      </button>
+      <span class="how-topnav-sep">/</span>
+      <span class="how-topnav-current">How it scores</span>
+    </div>
+
+    <section class="how-header">
+      <div class="section-label">Methodology</div>
+      <h2>How <em>Worth It</em> scores</h2>
+      <p>Five independent pillars, each scored 0–100, then weighted into a single grade. No black box — every number is traceable back to a rule.</p>
+    </section>
+
+    <div class="how-formula-block">
+      <div class="how-fb-label">Final Score</div>
+      <div class="how-formula-eq">
+        <span class="hf-term c1" data-c="1">I<small>× 0.25</small></span>
+        <span class="hf-op">+</span>
+        <span class="hf-term c2" data-c="2">II<small>× 0.20</small></span>
+        <span class="hf-op">+</span>
+        <span class="hf-term c3" data-c="3">III<small>× 0.20</small></span>
+        <span class="hf-op">+</span>
+        <span class="hf-term c4" data-c="4">IV<small>× 0.20</small></span>
+        <span class="hf-op">+</span>
+        <span class="hf-term c5" data-c="5">V<small>× 0.15</small></span>
+      </div>
+    </div>
+
+    <div class="how-weights">
+      <div class="how-donut-wrap">
+        <svg class="how-donut-svg" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--border)" stroke-width="3.8"/>
+          <circle class="how-donut-seg" data-c="1" cx="18" cy="18" r="15.9" fill="none" stroke="var(--gold)"    stroke-width="3.8" stroke-dasharray="25 75" stroke-dashoffset="0"   transform="rotate(-90 18 18)"/>
+          <circle class="how-donut-seg" data-c="2" cx="18" cy="18" r="15.9" fill="none" stroke="var(--primary)" stroke-width="3.8" stroke-dasharray="20 80" stroke-dashoffset="-25" transform="rotate(-90 18 18)"/>
+          <circle class="how-donut-seg" data-c="3" cx="18" cy="18" r="15.9" fill="none" stroke="var(--positive)"stroke-width="3.8" stroke-dasharray="20 80" stroke-dashoffset="-45" transform="rotate(-90 18 18)"/>
+          <circle class="how-donut-seg" data-c="4" cx="18" cy="18" r="15.9" fill="none" stroke="var(--orange)"  stroke-width="3.8" stroke-dasharray="20 80" stroke-dashoffset="-65" transform="rotate(-90 18 18)"/>
+          <circle class="how-donut-seg" data-c="5" cx="18" cy="18" r="15.9" fill="none" stroke="#f87c42"        stroke-width="3.8" stroke-dasharray="15 85" stroke-dashoffset="-85" transform="rotate(-90 18 18)"/>
+        </svg>
+      </div>
+      <div class="how-legend">
+        <div class="how-leg-item" data-c="1"><span class="hl-roman">I</span><span class="hl-name">Cost Efficiency</span><span class="hl-pct">25%</span></div>
+        <div class="how-leg-item" data-c="2"><span class="hl-roman">II</span><span class="hl-name">Quality Density</span><span class="hl-pct">20%</span></div>
+        <div class="how-leg-item" data-c="3"><span class="hl-roman">III</span><span class="hl-name">Genre Fit</span><span class="hl-pct">20%</span></div>
+        <div class="how-leg-item" data-c="4"><span class="hl-roman">IV</span><span class="hl-name">Hype vs. Reality</span><span class="hl-pct">20%</span></div>
+        <div class="how-leg-item" data-c="5"><span class="hl-roman">V</span><span class="hl-name">Deal Value</span><span class="hl-pct">15%</span></div>
+      </div>
+    </div>
+
+    <div class="how-pillars">
+      <div class="how-pc" data-c="1">
+        <div class="how-pc-head"><span class="how-pc-roman">I</span><span class="how-pc-name">Cost Efficiency</span><span class="how-pc-w">25%</span></div>
+        <p class="how-pc-desc">Price ÷ main playtime hours. The $1/hr line is the benchmark — below it is value, above it is expensive.</p>
+        <div class="how-bars">
+          <div class="how-bar-row"><span class="hbr-label">≤ $0.25/hr</span><div class="hbr-track"><div class="hbr-fill" style="width:95%"></div></div><span class="hbr-val">95</span></div>
+          <div class="how-bar-row"><span class="hbr-label">≤ $0.50/hr</span><div class="hbr-track"><div class="hbr-fill" style="width:85%"></div></div><span class="hbr-val">85</span></div>
+          <div class="how-bar-row"><span class="hbr-label">≤ $1.00/hr</span><div class="hbr-track"><div class="hbr-fill" style="width:72%"></div></div><span class="hbr-val">72</span></div>
+          <div class="how-bar-row"><span class="hbr-label">≤ $1.50/hr</span><div class="hbr-track"><div class="hbr-fill" style="width:60%"></div></div><span class="hbr-val">60</span></div>
+          <div class="how-bar-row"><span class="hbr-label">≤ $2.00/hr</span><div class="hbr-track"><div class="hbr-fill" style="width:50%"></div></div><span class="hbr-val">50</span></div>
+          <div class="how-bar-row"><span class="hbr-label">≤ $3.00/hr</span><div class="hbr-track"><div class="hbr-fill" style="width:38%"></div></div><span class="hbr-val">38</span></div>
+          <div class="how-bar-row"><span class="hbr-label">≤ $5.00/hr</span><div class="hbr-track"><div class="hbr-fill" style="width:25%"></div></div><span class="hbr-val">25</span></div>
+          <div class="how-bar-row"><span class="hbr-label">&gt; $5.00/hr</span><div class="hbr-track"><div class="hbr-fill" style="width:12%"></div></div><span class="hbr-val">12</span></div>
+        </div>
+      </div>
+
+      <div class="how-pc" data-c="2">
+        <div class="how-pc-head"><span class="how-pc-roman">II</span><span class="how-pc-name">Quality Density</span><span class="how-pc-w">20%</span></div>
+        <p class="how-pc-desc">How focused is the game? Main hours ÷ completion hours reveals filler. Combined with critic score for the final value.</p>
+        <div class="how-formula-chip"><code>(main ÷ completion) × 45 + critic_score × 55</code></div>
+        <div class="how-density-ex">
+          <div class="how-de-row"><span class="hde-label">Tight, no filler</span><div class="hde-bar" style="width:80px"></div><span class="hde-note">density &gt; 0.7</span></div>
+          <div class="how-de-row"><span class="hde-label">Some side content</span><div class="hde-bar" style="width:48px"></div><span class="hde-note">density 0.4–0.7</span></div>
+          <div class="how-de-row"><span class="hde-label">Heavy completionist</span><div class="hde-bar" style="width:24px"></div><span class="hde-note">density &lt; 0.4</span></div>
+        </div>
+      </div>
+
+      <div class="how-pc" data-c="3">
+        <div class="how-pc-head"><span class="how-pc-roman">III</span><span class="how-pc-name">Genre Fit</span><span class="how-pc-w">20%</span></div>
+        <p class="how-pc-desc">How well the game's tags match your taste profile. Set no preferences to get a neutral 55; every matching genre pushes it higher.</p>
+        <div class="how-ov-rows">
+          <div class="how-ov-row"><span class="hov-label">Perfect match</span><div class="hov-meter"><div class="hov-fill" style="width:95%"></div></div><span class="hov-val">95</span></div>
+          <div class="how-ov-row"><span class="hov-label">Partial match</span><div class="hov-meter"><div class="hov-fill" style="width:70%"></div></div><span class="hov-val">70</span></div>
+          <div class="how-ov-row"><span class="hov-label">No preferences</span><div class="hov-meter"><div class="hov-fill" style="width:55%"></div></div><span class="hov-val">55</span></div>
+          <div class="how-ov-row"><span class="hov-label">No match</span><div class="hov-meter"><div class="hov-fill" style="width:35%"></div></div><span class="hov-val">35</span></div>
+        </div>
+      </div>
+
+      <div class="how-pc" data-c="4">
+        <div class="how-pc-head"><span class="how-pc-roman">IV</span><span class="how-pc-name">Hype vs. Reality</span><span class="how-pc-w">20%</span></div>
+        <p class="how-pc-desc">The gap between press scores and player reviews. A large split means marketing overpromised — that gap gets penalised.</p>
+        <div class="how-formula-chip"><code>avg(critic, player) − gap × 0.4</code></div>
+        <div class="how-gap-rows">
+          <div class="how-gap-row"><span class="hgr-label">Critics 96 · Players 92</span><span class="hgr-gap aligned">Δ4 — aligned ✓</span></div>
+          <div class="how-gap-row"><span class="hgr-label">Critics 86 · Players 71</span><span class="hgr-gap slight">Δ15 — slight gap</span></div>
+          <div class="how-gap-row"><span class="hgr-label">Critics 90 · Players 55</span><span class="hgr-gap major">Δ35 — major split ✗</span></div>
+        </div>
+      </div>
+
+      <div class="how-pc" data-c="5">
+        <div class="how-pc-head"><span class="how-pc-roman">V</span><span class="how-pc-name">Deal Value</span><span class="how-pc-w">15%</span></div>
+        <p class="how-pc-desc">How good is today's price vs. history? Scored by discount from launch and proximity to the all-time low.</p>
+        <div class="how-formula-chip"><code>50 + (% off launch × 50) − (% above ATL × 30)</code></div>
+        <div class="how-deal-track">
+          <div class="how-ds-marker" style="left:0%"></div>
+          <div class="how-ds-marker" style="left:50%"></div>
+          <div class="how-ds-marker" style="left:100%"></div>
+        </div>
+        <div class="how-ds-label-row">
+          <span>All-time low</span><span>50% off launch</span><span>Launch price</span>
+        </div>
+        <div class="how-deal-vals"><span style="color:var(--positive)">Score ~96</span><span>Score ~65</span><span style="color:var(--red)">Score ~50</span></div>
+      </div>
+    </div>
+
+    <div class="how-grades-section">
+      <div class="section-label">Grade Scale</div>
+      <div class="how-grades">
+        <div class="how-grade-item" data-g="S"><span class="hgi-letter">S</span><span class="hgi-range">80–100</span><span class="hgi-label">Unmissable</span></div>
+        <div class="how-grade-item" data-g="A"><span class="hgi-letter">A</span><span class="hgi-range">68–79</span><span class="hgi-label">Buy now</span></div>
+        <div class="how-grade-item" data-g="B"><span class="hgi-letter">B</span><span class="hgi-range">55–67</span><span class="hgi-label">Fair price</span></div>
+        <div class="how-grade-item" data-g="C"><span class="hgi-letter">C</span><span class="hgi-range">42–54</span><span class="hgi-label">Wait for a sale</span></div>
+        <div class="how-grade-item" data-g="D"><span class="hgi-letter">D</span><span class="hgi-range">0–41</span><span class="hgi-label">Skip it</span></div>
+      </div>
+    </div>
+
+    <div class="how-back">
+      <button class="btn-ghost" id="howBack">← back to calculator</button>
+    </div>
+
+  </div><!-- /how-view -->
+
+</div>
+
+<!-- deals browser modal -->
+<div class="modal-backdrop" id="dealsModal">
+  <div class="modal deals-modal" role="dialog" aria-labelledby="dealsModalTitle">
+    <div class="modal-head">
+      <div class="modal-title" id="dealsModalTitle">Games on sale <span style="color:var(--text-200); font-weight:400; font-size:0.8125rem;" id="dealsCount"></span></div>
+      <button class="modal-close" id="dealsClose" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="deals-filters" id="dealsFilters">
+        <button class="deals-filter-btn active" data-genre="all">All</button>
+        <button class="deals-filter-btn" data-genre="rpg">RPG</button>
+        <button class="deals-filter-btn" data-genre="shooter">Shooter</button>
+        <button class="deals-filter-btn" data-genre="strategy">Strategy</button>
+        <button class="deals-filter-btn" data-genre="indie">Indie</button>
+        <button class="deals-filter-btn" data-genre="story">Story</button>
+        <button class="deals-filter-btn" data-genre="multiplayer">Multi</button>
+        <select class="deals-sort" id="dealsSort">
+          <option value="discount">% off ↓</option>
+          <option value="score">score ↓</option>
+          <option value="price">price ↓</option>
+        </select>
+      </div>
+      <div class="deals-grid" id="dealsGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- favorites picker modal -->
+<div class="modal-backdrop" id="favModal">
+  <div class="modal" role="dialog" aria-labelledby="favModalTitle">
+    <div class="modal-head">
+      <div class="modal-title" id="favModalTitle">Pick games you've loved</div>
+      <button class="modal-close" id="favClose" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <input id="favSearch" class="field modal-search" type="text" placeholder="Search the library — 3 picks is plenty">
+      <div class="fav-grid" id="favGrid"></div>
+    </div>
+    <div class="modal-foot">
+      <span><span class="modal-count" id="favCount">0</span> picked · we'll derive your genre weights</span>
+      <button class="btn-primary" id="favSave" style="margin-top:0; padding: 10px 20px;" disabled>Save taste <span class="arrow">→</span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const GAME_DB = [
+    {
+      id: 'elden-ring', title: 'Elden Ring', year: 2022, dev: 'FromSoftware', pub: 'Bandai Namco',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1245620/header.jpg',
+      genres: ['rpg','souls','open'],
+      hours: { main: 58, extra: 99, complete: 132 },
+      prices: { steam: 59.99, ps5: 59.99, xbox: 59.99, switch: null },
+      launch: 59.99, low: 29.99,
+      criticScore: 96, userScore: 92, sentiment: 0.94, popularity: 98
+    },
+    {
+      id: 'baldurs-gate-3', title: "Baldur's Gate 3", year: 2023, dev: 'Larian Studios', pub: 'Larian Studios',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1086940/header.jpg',
+      genres: ['rpg','story','strategy'],
+      hours: { main: 75, extra: 105, complete: 150 },
+      prices: { steam: 59.99, ps5: 69.99, xbox: 69.99, switch: null },
+      launch: 59.99, low: 41.99,
+      criticScore: 96, userScore: 91, sentiment: 0.96, popularity: 96
+    },
+    {
+      id: 'hades', title: 'Hades', year: 2020, dev: 'Supergiant Games', pub: 'Supergiant Games',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1145360/header.jpg',
+      genres: ['roguelike','indie','story'],
+      hours: { main: 22, extra: 45, complete: 96 },
+      prices: { steam: 24.99, ps5: 24.99, xbox: 24.99, switch: 24.99 },
+      launch: 24.99, low: 9.74,
+      criticScore: 93, userScore: 90, sentiment: 0.97, popularity: 88
+    },
+    {
+      id: 'cyberpunk', title: 'Cyberpunk 2077', year: 2020, dev: 'CD Projekt Red', pub: 'CD Projekt',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1091500/header.jpg',
+      genres: ['rpg','open','story','shooter'],
+      hours: { main: 25, extra: 60, complete: 105 },
+      prices: { steam: 39.99, ps5: 49.99, xbox: 49.99, switch: null },
+      launch: 59.99, low: 17.99,
+      criticScore: 86, userScore: 71, sentiment: 0.79, popularity: 92
+    },
+    {
+      id: 'redfall', title: 'Redfall', year: 2023, dev: 'Arkane Austin', pub: 'Bethesda',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1813230/header.jpg',
+      genres: ['shooter','open','multiplayer'],
+      hours: { main: 12, extra: 22, complete: 35 },
+      prices: { steam: 39.99, ps5: null, xbox: 39.99, switch: null },
+      launch: 69.99, low: 9.99,
+      criticScore: 56, userScore: 38, sentiment: 0.42, popularity: 28
+    },
+    {
+      id: 'celeste', title: 'Celeste', year: 2018, dev: 'Maddy Makes Games', pub: 'Maddy Makes Games',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/504230/header.jpg',
+      genres: ['indie','puzzle','story'],
+      hours: { main: 8, extra: 13, complete: 38 },
+      prices: { steam: 19.99, ps5: 19.99, xbox: 19.99, switch: 19.99 },
+      launch: 19.99, low: 4.99,
+      criticScore: 92, userScore: 89, sentiment: 0.96, popularity: 72
+    },
+    {
+      id: 'sekiro', title: 'Sekiro: Shadows Die Twice', year: 2019, dev: 'FromSoftware', pub: 'Activision',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/814380/header.jpg',
+      genres: ['souls','rpg'],
+      hours: { main: 30, extra: 41, complete: 72 },
+      prices: { steam: 59.99, ps5: 59.99, xbox: 59.99, switch: null },
+      launch: 59.99, low: 23.99,
+      criticScore: 90, userScore: 86, sentiment: 0.91, popularity: 84
+    },
+    {
+      id: 'helldivers-2', title: 'Helldivers 2', year: 2024, dev: 'Arrowhead', pub: 'Sony',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/553850/header.jpg',
+      genres: ['shooter','multiplayer'],
+      hours: { main: 30, extra: 80, complete: 200 },
+      prices: { steam: 39.99, ps5: 39.99, xbox: null, switch: null },
+      launch: 39.99, low: 31.99,
+      criticScore: 82, userScore: 79, sentiment: 0.80, popularity: 94
+    },
+    {
+      id: 'hollow-knight', title: 'Hollow Knight', year: 2017, dev: 'Team Cherry', pub: 'Team Cherry',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/367520/header.jpg',
+      genres: ['indie','souls','puzzle'],
+      hours: { main: 27, extra: 39, complete: 64 },
+      prices: { steam: 14.99, ps5: 14.99, xbox: 14.99, switch: 14.99 },
+      launch: 14.99, low: 5.99,
+      criticScore: 90, userScore: 92, sentiment: 0.97, popularity: 80
+    },
+    {
+      id: 'gta-v', title: 'Grand Theft Auto V', year: 2013, dev: 'Rockstar', pub: 'Rockstar',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/271590/header.jpg',
+      genres: ['open','story','multiplayer','shooter'],
+      hours: { main: 32, extra: 49, complete: 82 },
+      prices: { steam: 29.99, ps5: 19.99, xbox: 19.99, switch: null },
+      launch: 59.99, low: 7.49,
+      criticScore: 96, userScore: 80, sentiment: 0.85, popularity: 90
+    },
+    {
+      id: 'palworld', title: 'Palworld', year: 2024, dev: 'Pocketpair', pub: 'Pocketpair',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1623730/header.jpg',
+      genres: ['open','multiplayer','indie'],
+      hours: { main: 35, extra: 60, complete: 120 },
+      prices: { steam: 29.99, ps5: null, xbox: 29.99, switch: null },
+      launch: 29.99, low: 26.99,
+      criticScore: 73, userScore: 76, sentiment: 0.74, popularity: 86
+    },
+    {
+      id: 'mario-wonder', title: 'Super Mario Bros. Wonder', year: 2023, dev: 'Nintendo', pub: 'Nintendo',
+      capsule: 'https://upload.wikimedia.org/wikipedia/en/8/8d/Super_Mario_Bros._Wonder_Box_Art.jpg',
+      genres: ['puzzle','indie'],
+      hours: { main: 11, extra: 17, complete: 28 },
+      prices: { steam: null, ps5: null, xbox: null, switch: 59.99 },
+      launch: 59.99, low: 49.99,
+      criticScore: 92, userScore: 88, sentiment: 0.93, popularity: 78
+    },
+    {
+      id: 'rdr2', title: 'Red Dead Redemption 2', year: 2018, dev: 'Rockstar', pub: 'Rockstar',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1174180/header.jpg',
+      genres: ['open','story','shooter'],
+      hours: { main: 50, extra: 80, complete: 174 },
+      prices: { steam: 59.99, ps5: 49.99, xbox: 49.99, switch: null },
+      launch: 59.99, low: 19.79,
+      criticScore: 97, userScore: 90, sentiment: 0.94, popularity: 95
+    },
+    {
+      id: 'witcher-3', title: 'The Witcher 3: Wild Hunt', year: 2015, dev: 'CD Projekt Red', pub: 'CD Projekt',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/292030/header.jpg',
+      genres: ['rpg','open','story'],
+      hours: { main: 51, extra: 105, complete: 174 },
+      prices: { steam: 39.99, ps5: 39.99, xbox: 39.99, switch: 39.99 },
+      launch: 59.99, low: 7.99,
+      criticScore: 93, userScore: 92, sentiment: 0.96, popularity: 92
+    },
+    {
+      id: 'stardew-valley', title: 'Stardew Valley', year: 2016, dev: 'ConcernedApe', pub: 'ConcernedApe',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg',
+      genres: ['indie','story','strategy'],
+      hours: { main: 53, extra: 96, complete: 158 },
+      prices: { steam: 14.99, ps5: 14.99, xbox: 14.99, switch: 14.99 },
+      launch: 14.99, low: 7.49,
+      criticScore: 89, userScore: 92, sentiment: 0.97, popularity: 90
+    },
+    {
+      id: 'disco-elysium', title: 'Disco Elysium', year: 2019, dev: 'ZA/UM', pub: 'ZA/UM',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/632470/header.jpg',
+      genres: ['rpg','story','indie'],
+      hours: { main: 22, extra: 36, complete: 60 },
+      prices: { steam: 39.99, ps5: 39.99, xbox: 39.99, switch: 39.99 },
+      launch: 39.99, low: 9.99,
+      criticScore: 91, userScore: 89, sentiment: 0.94, popularity: 76
+    },
+    {
+      id: 'gow-2018', title: 'God of War', year: 2018, dev: 'Santa Monica Studio', pub: 'Sony',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1593500/header.jpg',
+      genres: ['story','rpg','open'],
+      hours: { main: 21, extra: 33, complete: 51 },
+      prices: { steam: 49.99, ps5: 19.99, xbox: null, switch: null },
+      launch: 49.99, low: 14.99,
+      criticScore: 94, userScore: 91, sentiment: 0.94, popularity: 89
+    },
+    {
+      id: 'gow-ragnarok', title: 'God of War Ragnarök', year: 2022, dev: 'Santa Monica Studio', pub: 'Sony',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2322010/header.jpg',
+      genres: ['story','rpg','open'],
+      hours: { main: 26, extra: 36, complete: 55 },
+      prices: { steam: 59.99, ps5: 69.99, xbox: null, switch: null },
+      launch: 69.99, low: 39.99,
+      criticScore: 94, userScore: 84, sentiment: 0.89, popularity: 91
+    },
+    {
+      id: 'spider-man', title: 'Marvel\'s Spider-Man Remastered', year: 2022, dev: 'Insomniac', pub: 'Sony',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1817070/header.jpg',
+      genres: ['open','story','shooter'],
+      hours: { main: 17, extra: 26, complete: 35 },
+      prices: { steam: 59.99, ps5: 49.99, xbox: null, switch: null },
+      launch: 59.99, low: 23.99,
+      criticScore: 87, userScore: 82, sentiment: 0.88, popularity: 84
+    },
+    {
+      id: 'horizon-zd', title: 'Horizon Zero Dawn', year: 2017, dev: 'Guerrilla Games', pub: 'Sony',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1151640/header.jpg',
+      genres: ['open','rpg','story','shooter'],
+      hours: { main: 22, extra: 39, complete: 67 },
+      prices: { steam: 49.99, ps5: 19.99, xbox: null, switch: null },
+      launch: 49.99, low: 9.99,
+      criticScore: 89, userScore: 85, sentiment: 0.90, popularity: 80
+    },
+    {
+      id: 'persona-5-r', title: 'Persona 5 Royal', year: 2022, dev: 'Atlus', pub: 'Sega',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1687950/header.jpg',
+      genres: ['rpg','story'],
+      hours: { main: 103, extra: 126, complete: 156 },
+      prices: { steam: 59.99, ps5: 59.99, xbox: 59.99, switch: 59.99 },
+      launch: 59.99, low: 23.99,
+      criticScore: 95, userScore: 92, sentiment: 0.95, popularity: 86
+    },
+    {
+      id: 're4-remake', title: 'Resident Evil 4', year: 2023, dev: 'Capcom', pub: 'Capcom',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2050650/header.jpg',
+      genres: ['shooter','story'],
+      hours: { main: 16, extra: 24, complete: 50 },
+      prices: { steam: 59.99, ps5: 59.99, xbox: 59.99, switch: null },
+      launch: 59.99, low: 23.99,
+      criticScore: 93, userScore: 91, sentiment: 0.94, popularity: 87
+    },
+    {
+      id: 'hogwarts', title: 'Hogwarts Legacy', year: 2023, dev: 'Avalanche', pub: 'Warner Bros.',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/990080/header.jpg',
+      genres: ['open','rpg','story'],
+      hours: { main: 32, extra: 56, complete: 105 },
+      prices: { steam: 59.99, ps5: 59.99, xbox: 59.99, switch: 49.99 },
+      launch: 59.99, low: 17.99,
+      criticScore: 84, userScore: 82, sentiment: 0.85, popularity: 88
+    },
+    {
+      id: 'starfield', title: 'Starfield', year: 2023, dev: 'Bethesda Game Studios', pub: 'Bethesda',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1716740/header.jpg',
+      genres: ['rpg','open','story','shooter'],
+      hours: { main: 25, extra: 80, complete: 148 },
+      prices: { steam: 69.99, ps5: null, xbox: 69.99, switch: null },
+      launch: 69.99, low: 27.99,
+      criticScore: 83, userScore: 60, sentiment: 0.62, popularity: 78
+    },
+    {
+      id: 'diablo-4', title: 'Diablo IV', year: 2023, dev: 'Blizzard', pub: 'Blizzard',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2344520/header.jpg',
+      genres: ['rpg','multiplayer'],
+      hours: { main: 35, extra: 80, complete: 150 },
+      prices: { steam: 69.99, ps5: 69.99, xbox: 69.99, switch: null },
+      launch: 69.99, low: 41.99,
+      criticScore: 86, userScore: 55, sentiment: 0.60, popularity: 84
+    },
+    {
+      id: 'returnal', title: 'Returnal', year: 2021, dev: 'Housemarque', pub: 'Sony',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1649240/header.jpg',
+      genres: ['roguelike','shooter','story'],
+      hours: { main: 19, extra: 27, complete: 53 },
+      prices: { steam: 59.99, ps5: 49.99, xbox: null, switch: null },
+      launch: 69.99, low: 23.99,
+      criticScore: 86, userScore: 80, sentiment: 0.85, popularity: 70
+    },
+    {
+      id: 'alan-wake-2', title: 'Alan Wake 2', year: 2023, dev: 'Remedy', pub: 'Epic Games',
+      capsule: 'https://upload.wikimedia.org/wikipedia/en/9/9d/Alan_Wake_2_cover.jpg',
+      genres: ['story','shooter'],
+      hours: { main: 17, extra: 22, complete: 40 },
+      prices: { steam: null, ps5: 49.99, xbox: 49.99, switch: null },
+      launch: 59.99, low: 29.99,
+      criticScore: 89, userScore: 88, sentiment: 0.92, popularity: 75
+    },
+    {
+      id: 'lies-of-p', title: 'Lies of P', year: 2023, dev: 'Round8', pub: 'Neowiz',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1627720/header.jpg',
+      genres: ['souls','rpg','story'],
+      hours: { main: 28, extra: 36, complete: 53 },
+      prices: { steam: 59.99, ps5: 59.99, xbox: 59.99, switch: null },
+      launch: 59.99, low: 23.99,
+      criticScore: 82, userScore: 85, sentiment: 0.88, popularity: 76
+    },
+    {
+      id: 'it-takes-two', title: 'It Takes Two', year: 2021, dev: 'Hazelight', pub: 'EA',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1426210/header.jpg',
+      genres: ['multiplayer','story','puzzle'],
+      hours: { main: 14, extra: 17, complete: 21 },
+      prices: { steam: 39.99, ps5: 39.99, xbox: 39.99, switch: 39.99 },
+      launch: 39.99, low: 9.99,
+      criticScore: 89, userScore: 91, sentiment: 0.95, popularity: 81
+    },
+    {
+      id: 'outer-wilds', title: 'Outer Wilds', year: 2019, dev: 'Mobius Digital', pub: 'Annapurna',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/753640/header.jpg',
+      genres: ['indie','puzzle','story','open'],
+      hours: { main: 15, extra: 20, complete: 39 },
+      prices: { steam: 24.99, ps5: 24.99, xbox: 24.99, switch: 24.99 },
+      launch: 24.99, low: 7.49,
+      criticScore: 89, userScore: 92, sentiment: 0.97, popularity: 74
+    },
+    {
+      id: 'subnautica', title: 'Subnautica', year: 2018, dev: 'Unknown Worlds', pub: 'Unknown Worlds',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/264710/header.jpg',
+      genres: ['indie','open','story'],
+      hours: { main: 30, extra: 41, complete: 65 },
+      prices: { steam: 29.99, ps5: 29.99, xbox: 29.99, switch: 29.99 },
+      launch: 24.99, low: 9.89,
+      criticScore: 87, userScore: 91, sentiment: 0.94, popularity: 80
+    },
+    {
+      id: 'cuphead', title: 'Cuphead', year: 2017, dev: 'Studio MDHR', pub: 'Studio MDHR',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/268910/header.jpg',
+      genres: ['indie','souls'],
+      hours: { main: 11, extra: 14, complete: 21 },
+      prices: { steam: 19.99, ps5: 19.99, xbox: 19.99, switch: 19.99 },
+      launch: 19.99, low: 9.99,
+      criticScore: 87, userScore: 88, sentiment: 0.93, popularity: 77
+    },
+    {
+      id: 'stray', title: 'Stray', year: 2022, dev: 'BlueTwelve', pub: 'Annapurna',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1332010/header.jpg',
+      genres: ['indie','story','puzzle'],
+      hours: { main: 7, extra: 10, complete: 16 },
+      prices: { steam: 29.99, ps5: 29.99, xbox: 29.99, switch: null },
+      launch: 29.99, low: 11.99,
+      criticScore: 84, userScore: 88, sentiment: 0.93, popularity: 78
+    },
+    {
+      id: 'slay-the-spire', title: 'Slay the Spire', year: 2019, dev: 'Mega Crit', pub: 'Mega Crit',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/646570/header.jpg',
+      genres: ['roguelike','indie','strategy'],
+      hours: { main: 23, extra: 50, complete: 195 },
+      prices: { steam: 24.99, ps5: 24.99, xbox: 24.99, switch: 24.99 },
+      launch: 24.99, low: 6.24,
+      criticScore: 89, userScore: 93, sentiment: 0.97, popularity: 76
+    },
+    {
+      id: 'dead-cells', title: 'Dead Cells', year: 2018, dev: 'Motion Twin', pub: 'Motion Twin',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/588650/header.jpg',
+      genres: ['roguelike','indie','souls'],
+      hours: { main: 21, extra: 36, complete: 90 },
+      prices: { steam: 24.99, ps5: 24.99, xbox: 24.99, switch: 24.99 },
+      launch: 24.99, low: 4.99,
+      criticScore: 89, userScore: 91, sentiment: 0.95, popularity: 75
+    },
+    {
+      id: 'vampire-survivors', title: 'Vampire Survivors', year: 2022, dev: 'poncle', pub: 'poncle',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1794680/header.jpg',
+      genres: ['roguelike','indie'],
+      hours: { main: 8, extra: 30, complete: 110 },
+      prices: { steam: 4.99, ps5: 4.99, xbox: 4.99, switch: 4.99 },
+      launch: 4.99, low: 2.49,
+      criticScore: 88, userScore: 95, sentiment: 0.97, popularity: 89
+    },
+    {
+      id: 'tlou-1', title: 'The Last of Us Part I', year: 2023, dev: 'Naughty Dog', pub: 'Sony',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1888930/header.jpg',
+      genres: ['story','shooter'],
+      hours: { main: 15, extra: 18, complete: 28 },
+      prices: { steam: 59.99, ps5: 49.99, xbox: null, switch: null },
+      launch: 59.99, low: 23.99,
+      criticScore: 83, userScore: 65, sentiment: 0.74, popularity: 79
+    },
+    {
+      id: 'ghost-tsushima', title: 'Ghost of Tsushima', year: 2024, dev: 'Sucker Punch', pub: 'Sony',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2215430/header.jpg',
+      genres: ['open','story','rpg'],
+      hours: { main: 25, extra: 45, complete: 76 },
+      prices: { steam: 59.99, ps5: 49.99, xbox: null, switch: null },
+      launch: 59.99, low: 41.99,
+      criticScore: 88, userScore: 91, sentiment: 0.93, popularity: 87
+    },
+    {
+      id: 'tears-of-kingdom', title: 'The Legend of Zelda: Tears of the Kingdom', year: 2023, dev: 'Nintendo', pub: 'Nintendo',
+      capsule: 'https://upload.wikimedia.org/wikipedia/en/4/47/The_Legend_of_Zelda_Tears_of_the_Kingdom_cover.jpg',
+      genres: ['open','rpg','story','puzzle'],
+      hours: { main: 60, extra: 130, complete: 235 },
+      prices: { steam: null, ps5: null, xbox: null, switch: 69.99 },
+      launch: 69.99, low: 49.99,
+      criticScore: 96, userScore: 89, sentiment: 0.93, popularity: 95
+    },
+    {
+      id: 'wukong', title: 'Black Myth: Wukong', year: 2024, dev: 'Game Science', pub: 'Game Science',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2358720/header.jpg',
+      genres: ['souls','rpg','story'],
+      hours: { main: 33, extra: 47, complete: 75 },
+      prices: { steam: 59.99, ps5: 59.99, xbox: null, switch: null },
+      launch: 59.99, low: 49.99,
+      criticScore: 81, userScore: 90, sentiment: 0.91, popularity: 92
+    },
+    {
+      id: 'balatro', title: 'Balatro', year: 2024, dev: 'LocalThunk', pub: 'Playstack',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2379780/header.jpg',
+      genres: ['roguelike','indie','strategy'],
+      hours: { main: 17, extra: 33, complete: 95 },
+      prices: { steam: 14.99, ps5: 14.99, xbox: 14.99, switch: 14.99 },
+      launch: 14.99, low: 11.24,
+      criticScore: 90, userScore: 96, sentiment: 0.98, popularity: 91
+    },
+    {
+      id: 'dragons-dogma-2', title: 'Dragon\'s Dogma 2', year: 2024, dev: 'Capcom', pub: 'Capcom',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2054970/header.jpg',
+      genres: ['rpg','open','story'],
+      hours: { main: 35, extra: 56, complete: 100 },
+      prices: { steam: 69.99, ps5: 69.99, xbox: 69.99, switch: null },
+      launch: 69.99, low: 41.99,
+      criticScore: 86, userScore: 60, sentiment: 0.68, popularity: 80
+    },
+    {
+      id: 'ff7-rebirth', title: 'Final Fantasy VII Rebirth', year: 2024, dev: 'Square Enix', pub: 'Square Enix',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2909400/header.jpg',
+      genres: ['rpg','story','open'],
+      hours: { main: 42, extra: 78, complete: 145 },
+      prices: { steam: 69.99, ps5: 69.99, xbox: null, switch: null },
+      launch: 69.99, low: 49.99,
+      criticScore: 92, userScore: 88, sentiment: 0.91, popularity: 85
+    },
+    {
+      id: 'minecraft', title: 'Minecraft', year: 2011, dev: 'Mojang', pub: 'Microsoft',
+      capsule: 'https://upload.wikimedia.org/wikipedia/en/5/51/Minecraft_cover.png',
+      genres: ['open','indie','multiplayer'],
+      hours: { main: 30, extra: 100, complete: 350 },
+      prices: { steam: null, ps5: 29.99, xbox: 29.99, switch: 29.99 },
+      launch: 26.95, low: 19.99,
+      criticScore: 93, userScore: 80, sentiment: 0.90, popularity: 96
+    },
+    {
+      id: 'nier-automata', title: 'NieR:Automata', year: 2017, dev: 'PlatinumGames', pub: 'Square Enix',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/524220/header.jpg',
+      genres: ['rpg','story','souls'],
+      hours: { main: 21, extra: 35, complete: 60 },
+      prices: { steam: 39.99, ps5: 39.99, xbox: 39.99, switch: 39.99 },
+      launch: 59.99, low: 13.99,
+      criticScore: 88, userScore: 88, sentiment: 0.92, popularity: 79
+    },
+    {
+      id: 'forza-horizon-5', title: 'Forza Horizon 5', year: 2021, dev: 'Playground Games', pub: 'Microsoft',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1551360/header.jpg',
+      genres: ['racing','open','multiplayer'],
+      hours: { main: 17, extra: 51, complete: 175 },
+      prices: { steam: 59.99, ps5: null, xbox: 59.99, switch: null },
+      launch: 59.99, low: 23.99,
+      criticScore: 92, userScore: 78, sentiment: 0.85, popularity: 84
+    },
+    {
+      id: 'factorio', title: 'Factorio', year: 2020, dev: 'Wube Software', pub: 'Wube Software',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/427520/header.jpg',
+      genres: ['strategy','indie'],
+      hours: { main: 32, extra: 100, complete: 295 },
+      prices: { steam: 35, ps5: null, xbox: null, switch: 35 },
+      launch: 30, low: 30,
+      criticScore: 90, userScore: 96, sentiment: 0.98, popularity: 73
+    },
+    {
+      id: 'civ-vi', title: 'Sid Meier\'s Civilization VI', year: 2016, dev: 'Firaxis', pub: '2K',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/289070/header.jpg',
+      genres: ['strategy'],
+      hours: { main: 25, extra: 110, complete: 280 },
+      prices: { steam: 59.99, ps5: 29.99, xbox: 29.99, switch: 29.99 },
+      launch: 59.99, low: 2.99,
+      criticScore: 88, userScore: 75, sentiment: 0.84, popularity: 81
+    },
+    {
+      id: 'death-stranding', title: 'Death Stranding Director\'s Cut', year: 2022, dev: 'Kojima Productions', pub: 'Sony',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1850570/header.jpg',
+      genres: ['open','story'],
+      hours: { main: 39, extra: 67, complete: 130 },
+      prices: { steam: 39.99, ps5: 49.99, xbox: null, switch: null },
+      launch: 39.99, low: 13.99,
+      criticScore: 86, userScore: 81, sentiment: 0.83, popularity: 75
+    },
+    {
+      id: 'dark-souls-3', title: 'Dark Souls III', year: 2016, dev: 'FromSoftware', pub: 'Bandai Namco',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/374320/header.jpg',
+      genres: ['souls','rpg'],
+      hours: { main: 32, extra: 47, complete: 99 },
+      prices: { steam: 59.99, ps5: null, xbox: 59.99, switch: null },
+      launch: 59.99, low: 11.99,
+      criticScore: 89, userScore: 86, sentiment: 0.93, popularity: 83
+    }
+  ];
+
+  const RATES = { USD: 1, IDR: 16400, EUR: 0.92, GBP: 0.79, SGD: 1.34, JPY: 154 };
+  const SYMBOLS = { USD: '$', IDR: 'Rp', EUR: '€', GBP: '£', SGD: 'S$', JPY: '¥' };
+  let currentCcy = 'USD';
+
+  function fmtPrice(usd) {
+    if (usd == null) return '—';
+    const v = usd * RATES[currentCcy];
+    if (currentCcy === 'IDR' || currentCcy === 'JPY') {
+      return SYMBOLS[currentCcy] + ' ' + Math.round(v).toLocaleString('en-US');
+    }
+    return SYMBOLS[currentCcy] + (currentCcy === 'EUR' || currentCcy === 'GBP' ? ' ' : '') + v.toFixed(2);
+  }
+
+  const state = {
+    pickedGame: null,
+    selectedPlatform: null,
+    manualPrice: null,
+    selectedGenres: new Set()
+  };
+
+  const PLATFORM_LABELS = { steam: 'Steam', ps5: 'PS5', xbox: 'Xbox', switch: 'Switch' };
+
+  function tasteMatchScore(g) {
+    const t = window.tasteProfile;
+    if (!t || !t.genreWeights) return 0;
+    let s = 0;
+    g.genres.forEach(gn => { s += (t.genreWeights[gn] || 0); });
+    return s;
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  function renderSuggestions(filter, liveResults) {
+    const list = document.getElementById('suggestionsList');
+    const lbl = document.getElementById('suggestionsLabel');
+    const taste = window.tasteProfile;
+    const hasQuery = filter && filter.trim();
+    let items = [];
+
+    if (hasQuery) {
+      const q = filter.toLowerCase();
+      const localMatches = GAME_DB.filter(g => g.title.toLowerCase().includes(q));
+      const localItems = localMatches.map(g => ({
+        id: g.id, title: g.title, year: g.year, dev: g.dev,
+        capsule: g.capsule, genres: g.genres, _live: false, _g: g
+      }));
+      const localTitles = new Set(localMatches.map(m => m.title.toLowerCase()));
+
+      const liveItems = (liveResults || [])
+        .filter(r => !localTitles.has((r.name || '').toLowerCase()))
+        .map(r => ({
+          id: 'rawg-' + r.id,
+          title: r.name,
+          year: r.released ? new Date(r.released).getFullYear() : '—',
+          dev: (r.developers && r.developers[0]?.name) || '',
+          capsule: r.background_image || '',
+          genres: (r.genres || []).slice(0, 2).map(g => g.name.toLowerCase()),
+          _live: true
+        }));
+
+      items = [...localItems, ...liveItems].slice(0, 10);
+      const liveCount = liveItems.length;
+      const localCount = localItems.length;
+      if (items.length === 0) {
+        lbl.textContent = getRawgKey()
+          ? '— no matches, try a different title'
+          : '— no matches in our DB · connect RAWG below to search 500k+';
+      } else if (liveCount && localCount) {
+        lbl.textContent = `— ${localCount} curated · ${liveCount} live (RAWG)`;
+      } else if (liveCount) {
+        lbl.textContent = `— ${liveCount} live results (RAWG)`;
+      } else {
+        lbl.textContent = `— ${localCount} match${localCount > 1 ? 'es' : ''}`;
+      }
+    } else if (taste && taste.genreWeights) {
+      const games = [...GAME_DB]
+        .filter(g => !(taste.favorites || []).includes(g.id))
+        .map(g => ({ g, s: tasteMatchScore(g) * 0.7 + (g.popularity / 100) * 0.3 }))
+        .sort((a, b) => b.s - a.s)
+        .slice(0, 6)
+        .map(x => x.g);
+      items = games.map(g => ({
+        id: g.id, title: g.title, year: g.year, dev: g.dev,
+        capsule: g.capsule, genres: g.genres, _live: false, _g: g
+      }));
+      lbl.textContent = `— picked for you · ${(taste.topGenres || []).slice(0,3).join(' · ')}`;
+    } else {
+      const topPool = [...GAME_DB].sort((a, b) => b.popularity - a.popularity).slice(0, 30);
+      const games = topPool.sort(() => Math.random() - 0.5).slice(0, 6);
+      items = games.map(g => ({
+        id: g.id, title: g.title, year: g.year, dev: g.dev,
+        capsule: g.capsule, genres: g.genres, _live: false, _g: g
+      }));
+      lbl.textContent = '— popular right now';
+    }
+
+    list.innerHTML = items.map(it => {
+      const matchScore = (taste && it._g) ? tasteMatchScore(it._g) : 0;
+      const matchedGenres = taste && taste.genreWeights && it._g
+        ? it._g.genres.filter(gn => (taste.genreWeights[gn] || 0) > 0)
+        : [];
+      const showMatch = matchScore >= 0.5 && matchedGenres.length;
+      const genreStr = (it.genres || []).slice(0, 2).join(', ');
+      return `
+        <div class="suggestion" data-id="${escapeHtml(it.id)}">
+          <div class="suggestion-thumb" style="background-image: url('${escapeHtml(it.capsule)}')"></div>
+          <div class="suggestion-body">
+            <div class="suggestion-title">${escapeHtml(it.title)}${it._live ? '<span class="suggestion-live">live</span>' : ''}</div>
+            <div class="suggestion-meta">${escapeHtml(it.year)}${it.dev ? ' · ' + escapeHtml(it.dev) : ''}${genreStr ? ' · ' + escapeHtml(genreStr) : ''}</div>
+            ${showMatch ? `<div class="suggestion-match">↳ matches: ${escapeHtml(matchedGenres.slice(0,3).join(', '))}</div>` : ''}
+          </div>
+          <div class="suggestion-arrow">→</div>
+        </div>
+      `;
+    }).join('');
+    list.querySelectorAll('.suggestion').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.id;
+        if (id.startsWith('rawg-')) pickRawgGame(id.slice(5));
+        else pickGame(id);
+      });
+    });
+  }
+
+  /* RAWG live search debounce */
+  let rawgSearchTimer = null;
+  let rawgSearchAbort = null;
+  let rawgLastQuery = '';
+
+  function maybeLiveSearch(query) {
+    if (rawgSearchTimer) clearTimeout(rawgSearchTimer);
+    if (rawgSearchAbort) rawgSearchAbort.abort();
+    if (!getRawgKey()) return;
+    const q = (query || '').trim();
+    if (q.length < 2) return;
+    rawgLastQuery = q;
+    rawgSearchTimer = setTimeout(async () => {
+      rawgSearchAbort = new AbortController();
+      try {
+        const results = await searchRawg(q, rawgSearchAbort.signal);
+        if (q !== rawgLastQuery) return;
+        if (document.getElementById('game').value.trim() !== q) return;
+        renderSuggestions(q, results);
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          const status = document.getElementById('rawgStatus');
+          const text = document.getElementById('rawgStatusText');
+          if (text && status.style.display !== 'none') {
+            status.classList.add('error');
+            text.textContent = `RAWG: ${e.message}`;
+          }
+        }
+      }
+    }, 320);
+  }
+
+  function applyPickedGame(g) {
+    state.pickedGame = g;
+    state.manualPrice = null;
+    document.getElementById('game').value = g.title;
+    document.getElementById('suggestionsList').innerHTML = '';
+    document.getElementById('suggestionsLabel').textContent = g._live
+      ? '— picked from RAWG · live data'
+      : '';
+    document.getElementById('pickedInfo').style.display = 'block';
+    document.getElementById('hMain').textContent = g.hours.main + 'h';
+    document.getElementById('hExtra').textContent = g.hours.extra + 'h';
+    document.getElementById('hComp').textContent = g.hours.complete + 'h';
+    const availablePlat = Object.entries(g.prices).find(([k, v]) => v != null);
+    state.selectedPlatform = availablePlat ? availablePlat[0] : null;
+    renderPlatforms();
+    const manualField = document.getElementById('priceManual');
+    if (!availablePlat) {
+      manualField.style.display = 'block';
+      manualField.value = '';
+      manualField.placeholder = g._live
+        ? 'no Steam price found — enter price manually'
+        : '0.00';
+    } else {
+      manualField.style.display = 'none';
+      manualField.value = '';
+    }
+    // Auto-apply historical low when game is 20%+ off launch (matches deals browser threshold)
+    if (typeof g.low === 'number' && g.low > 0 && typeof g.launch === 'number' && g.launch > 0 && g.low < g.launch * 0.8) {
+      state.manualPrice = g.low;
+      renderPlatforms();
+    }
+    document.getElementById('calcBtn').disabled = false;
+  }
+
+  function pickGame(id) {
+    const g = GAME_DB.find(x => x.id === id);
+    if (g) applyPickedGame(g);
+  }
+
+  async function pickRawgGame(rawgId) {
+    const lbl = document.getElementById('suggestionsLabel');
+    lbl.textContent = '— fetching from RAWG…';
+    try {
+      const detail = await fetchRawgDetail(rawgId);
+      const g = await mapRawgGame(detail);
+      applyPickedGame(g);
+    } catch (e) {
+      lbl.textContent = `— couldn't fetch: ${e.message || e}`;
+    }
+  }
+
+  function renderPlatforms() {
+    const g = state.pickedGame;
+    const list = document.getElementById('platformList');
+    const order = ['steam','ps5','xbox','switch'];
+    list.innerHTML = order.map(p => {
+      const price = g.prices[p];
+      const unavailable = price == null;
+      const isOn = !unavailable && p === state.selectedPlatform;
+      const displayPrice = (isOn && state.manualPrice != null) ? state.manualPrice : price;
+      return `
+        <button class="plat ${isOn ? 'on' : ''} ${unavailable ? 'unavailable' : ''}" data-p="${p}" ${unavailable ? 'disabled' : ''}>
+          ${PLATFORM_LABELS[p]}
+          <span class="plat-price">${unavailable ? 'n/a' : fmtPrice(displayPrice)}</span>
+        </button>
+      `;
+    }).join('');
+    list.querySelectorAll('.plat').forEach(btn => {
+      if (btn.disabled) return;
+      btn.addEventListener('click', () => {
+        state.selectedPlatform = btn.dataset.p;
+        state.manualPrice = null;
+        document.getElementById('priceManual').style.display = 'none';
+        renderPlatforms();
+      });
+    });
+  }
+
+  document.getElementById('themeToggle').addEventListener('click', (e) => {
+    const root = document.documentElement;
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('worthit.theme', next); } catch(_) {}
+    const rect = e.currentTarget.getBoundingClientRect();
+    root.style.setProperty('--toggle-x', `${rect.left + rect.width/2}px`);
+    root.style.setProperty('--toggle-y', `${rect.top + rect.height/2}px`);
+    if (document.startViewTransition) {
+      document.startViewTransition(() => { root.dataset.theme = next; });
+    } else {
+      root.dataset.theme = next;
+    }
+  });
+
+  document.getElementById('ccySelect').addEventListener('change', (e) => {
+    currentCcy = e.target.value;
+    try { localStorage.setItem('worthit.ccy', currentCcy); } catch(_) {}
+    if (state.pickedGame) renderPlatforms();
+    if (document.getElementById('receipt').style.display !== 'none' && state.pickedGame) runCalc();
+  });
+
+  // Auto-detect currency from timezone, or restore saved preference
+  (function autoDetectCurrency() {
+    try {
+      const saved = localStorage.getItem('worthit.ccy');
+      if (saved && document.getElementById('ccySelect').querySelector(`option[value="${saved}"]`)) {
+        currentCcy = saved;
+        document.getElementById('ccySelect').value = saved;
+        return;
+      }
+    } catch(_) {}
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const tzMap = {
+        'Asia/Jakarta': 'IDR', 'Asia/Makassar': 'IDR', 'Asia/Jayapura': 'IDR', 'Asia/Pontianak': 'IDR',
+        'Asia/Singapore': 'SGD', 'Asia/Kuala_Lumpur': 'SGD',
+        'Asia/Tokyo': 'JPY', 'Asia/Osaka': 'JPY',
+        'Europe/London': 'GBP', 'Europe/Dublin': 'GBP',
+        'Europe/Paris': 'EUR', 'Europe/Berlin': 'EUR', 'Europe/Madrid': 'EUR',
+        'Europe/Rome': 'EUR', 'Europe/Amsterdam': 'EUR', 'Europe/Brussels': 'EUR',
+        'Europe/Vienna': 'EUR', 'Europe/Warsaw': 'EUR', 'Europe/Prague': 'EUR',
+        'Europe/Budapest': 'EUR', 'Europe/Helsinki': 'EUR', 'Europe/Stockholm': 'EUR',
+        'Europe/Athens': 'EUR', 'Europe/Lisbon': 'EUR', 'Europe/Bucharest': 'EUR'
+      };
+      const ccy = tzMap[tz];
+      const sel = document.getElementById('ccySelect');
+      if (ccy && sel.querySelector(`option[value="${ccy}"]`)) {
+        currentCcy = ccy;
+        sel.value = ccy;
+      }
+    } catch(_) {}
+  })();
+
+  const gameInput = document.getElementById('game');
+  gameInput.addEventListener('input', (e) => {
+    state.pickedGame = null;
+    document.getElementById('pickedInfo').style.display = 'none';
+    document.getElementById('calcBtn').disabled = true;
+    renderSuggestions(e.target.value);
+    maybeLiveSearch(e.target.value);
+  });
+  gameInput.addEventListener('focus', () => {
+    renderSuggestions(gameInput.value);
+    maybeLiveSearch(gameInput.value);
+  });
+
+  /* RAWG settings UI */
+  document.getElementById('rawgEnable').addEventListener('click', () => {
+    document.getElementById('rawgCta').style.display = 'none';
+    const form = document.getElementById('rawgKeyForm');
+    form.style.display = 'grid';
+    document.getElementById('rawgKeyInput').focus();
+  });
+  document.getElementById('rawgKeyCancel').addEventListener('click', () => {
+    document.getElementById('rawgKeyForm').style.display = 'none';
+    document.getElementById('rawgCta').style.display = 'block';
+  });
+  document.getElementById('rawgKeySave').addEventListener('click', () => {
+    const v = document.getElementById('rawgKeyInput').value.trim();
+    if (!/^[a-f0-9]{24,40}$/i.test(v)) {
+      const status = document.getElementById('rawgStatus');
+      const text = document.getElementById('rawgStatusText');
+      status.style.display = 'flex';
+      status.classList.add('error');
+      text.textContent = 'That doesn\'t look like a RAWG key (32-char hex). Try again.';
+      return;
+    }
+    setRawgKey(v);
+    document.getElementById('rawgKeyInput').value = '';
+    const status = document.getElementById('rawgStatus');
+    const text = document.getElementById('rawgStatusText');
+    status.classList.remove('error');
+    text.textContent = 'Live search via RAWG';
+    if (gameInput.value.trim()) maybeLiveSearch(gameInput.value);
+  });
+  document.getElementById('rawgKeyInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('rawgKeySave').click();
+  });
+  document.getElementById('rawgDisconnect').addEventListener('click', () => {
+    setRawgKey('');
+    document.getElementById('rawgStatus').classList.remove('error');
+    document.getElementById('rawgStatusText').textContent = 'Live search via RAWG';
+    renderSuggestions(gameInput.value);
+  });
+  refreshRawgUi();
+
+  document.getElementById('manualPriceBtn').addEventListener('click', () => {
+    const inp = document.getElementById('priceManual');
+    inp.style.display = inp.style.display === 'none' ? 'block' : 'none';
+    if (inp.style.display === 'block') inp.focus();
+  });
+  document.getElementById('priceManual').addEventListener('input', (e) => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v)) {
+      state.manualPrice = v / RATES[currentCcy];
+      document.querySelectorAll('.plat').forEach(p => p.classList.remove('on'));
+    }
+  });
+
+  document.querySelectorAll('#genrePills .pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const g = pill.dataset.g;
+      if (state.selectedGenres.has(g)) {
+        state.selectedGenres.delete(g);
+        pill.classList.remove('on');
+      } else {
+        state.selectedGenres.add(g);
+        pill.classList.add('on');
+      }
+    });
+  });
+
+  document.getElementById('calcBtn').addEventListener('click', () => runCalc());
+
+  /* ---------- RAWG live search ---------- */
+  const RAWG_KEY_STORAGE = 'worthit.rawgKey.v1';
+  const RAWG_BASE = 'https://api.rawg.io/api';
+  const CORS_PROXIES = [
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`
+  ];
+
+  function getRawgKey() {
+    try { return localStorage.getItem(RAWG_KEY_STORAGE) || ''; } catch (e) { return ''; }
+  }
+  function setRawgKey(k) {
+    try {
+      if (k) localStorage.setItem(RAWG_KEY_STORAGE, k);
+      else localStorage.removeItem(RAWG_KEY_STORAGE);
+    } catch (e) {}
+    refreshRawgUi();
+  }
+
+  function refreshRawgUi() {
+    const k = getRawgKey();
+    document.getElementById('rawgCta').style.display = k ? 'none' : 'block';
+    document.getElementById('rawgStatus').style.display = k ? 'flex' : 'none';
+    document.getElementById('rawgKeyForm').style.display = 'none';
+    document.getElementById('rawgDbCount').textContent = GAME_DB.length;
+  }
+
+  async function loadPrefetchedGames() {
+    try {
+      const res = await fetch('games.json', { cache: 'default' });
+      if (!res.ok) return;
+      const entries = await res.json();
+      if (!Array.isArray(entries) || !entries.length) return;
+      const handCuratedTitles = new Set(GAME_DB.map(g => (g.title || '').toLowerCase().trim()));
+      let added = 0;
+      for (const e of entries) {
+        const key = (e.title || '').toLowerCase().trim();
+        if (!key || handCuratedTitles.has(key)) continue;
+        handCuratedTitles.add(key);
+        GAME_DB.push(e);
+        added++;
+      }
+      const countEl = document.getElementById('rawgDbCount');
+      if (countEl) countEl.textContent = GAME_DB.length;
+      const gi = document.getElementById('gameInput');
+      if (gi && gi.value) renderSuggestions(gi.value);
+      console.log(`Prefetch loaded: +${added} games (total ${GAME_DB.length})`);
+    } catch (e) {
+      // games.json not present (e.g. before first prefetch run) — silent fallback to hand-curated
+    }
+  }
+  loadPrefetchedGames();
+
+  async function rawgFetch(path, params = {}) {
+    const key = getRawgKey();
+    if (!key) throw new Error('No RAWG API key');
+    const qs = new URLSearchParams({ key, ...params }).toString();
+    const url = `${RAWG_BASE}${path}?${qs}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      if (res.status === 401) throw new Error('Invalid RAWG API key');
+      if (res.status === 429) throw new Error('RAWG rate limit hit — wait a minute');
+      throw new Error(`RAWG ${res.status}`);
+    }
+    return res.json();
+  }
+
+  async function searchRawg(query, signal) {
+    const key = getRawgKey();
+    if (!key) return [];
+    const qs = new URLSearchParams({
+      key, search: query, page_size: '8', search_precise: 'true'
+    }).toString();
+    const res = await fetch(`${RAWG_BASE}/games?${qs}`, { signal });
+    if (!res.ok) throw new Error(`RAWG ${res.status}`);
+    const json = await res.json();
+    return json.results || [];
+  }
+
+  async function fetchRawgDetail(id) {
+    return rawgFetch(`/games/${id}`);
+  }
+
+  function mapRawgGenres(genres = [], tags = []) {
+    const out = new Set();
+    const slugs = new Set([
+      ...genres.map(g => (g.slug || '').toLowerCase()),
+      ...tags.map(t => (t.slug || '').toLowerCase())
+    ]);
+    if (slugs.has('role-playing-games-rpg') || slugs.has('rpg')) out.add('rpg');
+    if (slugs.has('shooter') || slugs.has('first-person-shooter') || slugs.has('fps')) out.add('shooter');
+    if (slugs.has('strategy') || slugs.has('real-time-strategy') || slugs.has('turn-based-strategy')) out.add('strategy');
+    if (slugs.has('indie')) out.add('indie');
+    if (slugs.has('puzzle')) out.add('puzzle');
+    if (slugs.has('racing')) out.add('racing');
+    if (slugs.has('massively-multiplayer') || slugs.has('multiplayer') || slugs.has('online-multi-player') || slugs.has('co-op') || slugs.has('online-co-op')) out.add('multiplayer');
+    if (slugs.has('adventure') || slugs.has('story-rich')) out.add('story');
+    if (slugs.has('souls-like') || slugs.has('soulslike')) out.add('souls');
+    if (slugs.has('roguelike') || slugs.has('rogue-like') || slugs.has('roguelite') || slugs.has('rogue-lite')) out.add('roguelike');
+    if (slugs.has('open-world')) out.add('open');
+    return [...out];
+  }
+
+  function steamAppIdFromRawg(detail) {
+    if (!detail.stores) return null;
+    const steam = detail.stores.find(s =>
+      s.store?.slug === 'steam' || s.store?.id === 1
+    );
+    if (!steam?.url) return null;
+    const m = steam.url.match(/\/app\/(\d+)/);
+    return m ? m[1] : null;
+  }
+
+  async function fetchSteamPriceForApp(appId) {
+    if (!appId) return null;
+    const url = `https://store.steampowered.com/api/appdetails?appids=${appId}&cc=us&filters=price_overview`;
+    for (const wrap of CORS_PROXIES) {
+      try {
+        const res = await fetch(wrap(url));
+        if (!res.ok) continue;
+        const json = await res.json();
+        const data = json[appId];
+        if (!data || !data.success) continue;
+        const po = data.data && data.data.price_overview;
+        if (!po) return { current: null, initial: null, free: true };
+        return {
+          current: (po.final || 0) / 100,
+          initial: (po.initial || 0) / 100,
+          discount: po.discount_percent || 0,
+          free: false
+        };
+      } catch (e) { /* try next */ }
+    }
+    return null;
+  }
+
+  async function mapRawgGame(detail) {
+    const released = detail.released ? new Date(detail.released) : null;
+    const year = released ? released.getFullYear() : 2024;
+    const playtime = detail.playtime || 0;
+    const main = playtime > 0 ? playtime : 20;
+    const extra = Math.round(main * 1.5);
+    const complete = Math.round(main * 2.5);
+
+    const genres = mapRawgGenres(detail.genres || [], detail.tags || []);
+    const dev = detail.developers?.[0]?.name || 'Unknown';
+    const pub = detail.publishers?.[0]?.name || dev;
+
+    const steamAppId = steamAppIdFromRawg(detail);
+    let priceInfo = null;
+    if (steamAppId) {
+      try { priceInfo = await fetchSteamPriceForApp(steamAppId); } catch (e) {}
+    }
+
+    let currentUSD = null, launchUSD = null, lowUSD = null;
+    if (priceInfo) {
+      if (priceInfo.free) {
+        currentUSD = 0; launchUSD = 0; lowUSD = 0;
+      } else {
+        currentUSD = priceInfo.current;
+        launchUSD = priceInfo.initial || priceInfo.current;
+        lowUSD = priceInfo.discount > 0 ? currentUSD : Math.round(launchUSD * 0.5 * 100) / 100;
+      }
+    }
+
+    const capsule = steamAppId
+      ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamAppId}/header.jpg`
+      : (detail.background_image || '');
+
+    const userRating = detail.rating || 0;
+    const userScore = userRating > 0 ? Math.round(userRating * 20) : 75;
+    const criticScore = detail.metacritic || userScore;
+    const popularity = detail.added
+      ? Math.min(100, Math.max(40, Math.round(Math.log10(detail.added + 1) * 18)))
+      : 60;
+
+    return {
+      id: 'rawg-' + detail.id,
+      rawgId: detail.id,
+      title: detail.name,
+      year, dev, pub, capsule,
+      genres: genres.length ? genres : ['indie'],
+      hours: { main, extra, complete },
+      prices: { steam: currentUSD, ps5: null, xbox: null, switch: null },
+      launch: launchUSD ?? 30,
+      low: lowUSD ?? (launchUSD ? launchUSD * 0.5 : 15),
+      criticScore, userScore,
+      sentiment: userScore / 100,
+      popularity,
+      _live: true,
+      _hasPriceData: priceInfo != null
+    };
+  }
+
+  /* ---------- Taste profile (Steam / favorites) ---------- */
+  const TASTE_KEY = 'worthit.taste.v2';
+  const KNOWN_GENRES = ['rpg','souls','shooter','strategy','story','multiplayer','indie','open','roguelike','racing','puzzle'];
+
+  function loadTaste() {
+    try {
+      const raw = localStorage.getItem(TASTE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) { return null; }
+  }
+  function saveTaste(t) {
+    try { localStorage.setItem(TASTE_KEY, JSON.stringify(t)); } catch (e) {}
+  }
+  function clearTasteStorage() {
+    try { localStorage.removeItem(TASTE_KEY); } catch (e) {}
+  }
+
+  function appIdFromCapsule(url) {
+    const m = (url || '').match(/\/apps\/(\d+)\//);
+    return m ? m[1] : null;
+  }
+
+  function buildAppIdMap() {
+    const m = new Map();
+    GAME_DB.forEach(g => {
+      const aid = appIdFromCapsule(g.capsule);
+      if (aid) m.set(aid, g);
+    });
+    return m;
+  }
+
+  function deriveTasteFromFavorites(favoriteIds, name, source) {
+    const games = favoriteIds.map(id => GAME_DB.find(g => g.id === id)).filter(Boolean);
+    if (!games.length) return null;
+    const counts = {};
+    games.forEach(g => g.genres.forEach(gn => { counts[gn] = (counts[gn] || 0) + 1; }));
+    const max = Math.max(...Object.values(counts), 1);
+    const genreWeights = {};
+    Object.entries(counts).forEach(([k, v]) => { genreWeights[k] = v / max; });
+    const top = Object.entries(genreWeights).sort((a,b) => b[1]-a[1]).slice(0,4).map(x => x[0]);
+    return { name, source, favorites: favoriteIds, genreWeights, topGenres: top };
+  }
+
+  function deriveTasteFromSteamLibrary(library, name, source, steamRef) {
+    const idMap = buildAppIdMap();
+    const matched = library.games.map(lg => {
+      const g = idMap.get(String(lg.appId));
+      return g ? { game: g, hours: lg.hours, name: lg.name } : null;
+    }).filter(Boolean);
+
+    const owned = matched;
+    const played = matched.filter(x => x.hours > 0);
+    const totalHours = played.reduce((s, x) => s + x.hours, 0);
+
+    const genreHours = {};
+    played.forEach(({ game, hours }) => {
+      game.genres.forEach(gn => {
+        genreHours[gn] = (genreHours[gn] || 0) + hours;
+      });
+    });
+
+    let genreWeights = {};
+    if (Object.keys(genreHours).length) {
+      const max = Math.max(...Object.values(genreHours), 1);
+      Object.entries(genreHours).forEach(([k, v]) => { genreWeights[k] = v / max; });
+    }
+    const topGenres = Object.entries(genreWeights)
+      .sort((a, b) => b[1] - a[1]).slice(0, 4).map(x => x[0]);
+
+    const topPlayed = [...played]
+      .sort((a, b) => b.hours - a.hours)
+      .slice(0, 5)
+      .map(x => ({ id: x.game.id, title: x.game.title, hours: Math.round(x.hours) }));
+
+    const favorites = topPlayed.slice(0, 5).map(x => x.id);
+
+    return {
+      name, source, steamRef,
+      favorites, genreWeights, topGenres,
+      library: {
+        totalInLibrary: library.totalInLibrary,
+        totalRaw: library.totalRaw || library.totalInLibrary,
+        truncated: !!library.truncated,
+        cap: library.cap || null,
+        matchedCount: owned.length,
+        playedCount: played.length,
+        totalHours: Math.round(totalHours),
+        genreHours: Object.fromEntries(
+          Object.entries(genreHours).map(([k, v]) => [k, Math.round(v)])
+        ),
+        topPlayed
+      }
+    };
+  }
+
+  function parseSteamInput(raw) {
+    const v = (raw || '').trim();
+    if (!v) return null;
+    let m = v.match(/steamcommunity\.com\/(?:id|profiles)\/([^\/?#]+)/i);
+    if (m) {
+      const isId = /^\d{17}$/.test(m[1]);
+      return { kind: isId ? 'id' : 'vanity', value: m[1] };
+    }
+    if (/^\d{17}$/.test(v)) return { kind: 'id', value: v };
+    if (/^[A-Za-z0-9_-]{2,32}$/.test(v)) return { kind: 'vanity', value: v };
+    return null;
+  }
+
+  const STEAM_KEY_STORAGE = 'worthit.steamKey.v1';
+  function getSteamApiKey() {
+    try { return localStorage.getItem(STEAM_KEY_STORAGE) || ''; } catch(e) { return ''; }
+  }
+
+  const STEAM_PROXIES = [
+    u => u,  // direct first — Steam Web API has CORS headers when called with a key
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+  ];
+
+  async function steamApiFetch(url) {
+    for (const wrap of STEAM_PROXIES) {
+      try {
+        const r = await fetch(wrap(url));
+        if (!r.ok) continue;
+        const text = await r.text();
+        if (!text || text.length < 10) continue;
+        if (/<!DOCTYPE html/i.test(text)) continue;
+        return JSON.parse(text);
+      } catch(e) {}
+    }
+    return null;
+  }
+
+  async function fetchSteamLibraryWithKey(key, ref) {
+    let steamId64 = ref.kind === 'id' ? ref.value : null;
+
+    if (!steamId64) {
+      const data = await steamApiFetch(
+        `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/?key=${key}&vanityurl=${encodeURIComponent(ref.value)}&format=json`
+      );
+      if (data?.response?.success !== 1 || !data?.response?.steamid) {
+        throw new Error('Could not resolve Steam profile — check the URL and that your key is valid.');
+      }
+      steamId64 = data.response.steamid;
+    }
+
+    const summaryData = await steamApiFetch(
+      `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${key}&steamids=${steamId64}&format=json`
+    );
+    const steamName = summaryData?.response?.players?.[0]?.personaname || null;
+
+    const gamesData = await steamApiFetch(
+      `https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=${key}&steamid=${steamId64}&include_appinfo=1&include_played_free_games=1&format=json`
+    );
+
+    if (!gamesData?.response?.games?.length) {
+      throw new Error('No games returned — make sure Game Details is set to Public in Steam Privacy Settings.');
+    }
+
+    const allGames = gamesData.response.games.map(g => ({
+      appId: String(g.appid),
+      name: g.name || '',
+      hours: Math.round((g.playtime_forever || 0) / 60 * 10) / 10
+    }));
+
+    const LIBRARY_CAP = 2000;
+    const totalRaw = allGames.length;
+    const truncated = totalRaw > LIBRARY_CAP;
+    const games = truncated
+      ? [...allGames].sort((a, b) => b.hours - a.hours).slice(0, LIBRARY_CAP)
+      : allGames;
+    return { steamID64: steamId64, steamName, games, totalInLibrary: games.length, totalRaw, truncated, cap: LIBRARY_CAP };
+  }
+
+  async function fetchSteamLibraryXml(ref) {
+    const path = ref.kind === 'id' ? `profiles/${ref.value}` : `id/${ref.value}`;
+    const xmlUrl = `https://steamcommunity.com/${path}/games?tab=all&xml=1`;
+    const proxies = [
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+      u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+      u => `https://thingproxy.freeboard.io/fetch/${u}`
+    ];
+    let lastErr;
+    for (const wrap of proxies) {
+      try {
+        const res = await fetch(wrap(xmlUrl));
+        if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
+        const text = await res.text();
+        if (!text || text.length < 50) { lastErr = new Error('Empty response'); continue; }
+        if (/<!DOCTYPE html/i.test(text) && !/<gamesList/i.test(text)) {
+          lastErr = new Error('Proxy blocked by Steam'); continue;
+        }
+        const doc = new DOMParser().parseFromString(text, 'text/xml');
+        if (doc.querySelector('parsererror')) { lastErr = new Error('Could not parse response'); continue; }
+        const errEl = doc.querySelector('error');
+        if (errEl) { lastErr = new Error(errEl.textContent.trim()); continue; }
+        if (!doc.querySelector('gamesList')) { lastErr = new Error('Profile may be private'); continue; }
+        const steamID64 = doc.querySelector('steamID64')?.textContent?.trim() || null;
+        const steamName = doc.querySelector('steamID')?.textContent?.trim() || null;
+        const allGames = [...doc.querySelectorAll('games > game')].map(node => ({
+          appId: node.querySelector('appID')?.textContent?.trim(),
+          name: node.querySelector('name')?.textContent?.trim(),
+          hours: parseFloat((node.querySelector('hoursOnRecord')?.textContent || '0').replace(/,/g, '')) || 0
+        })).filter(g => g.appId);
+        const LIBRARY_CAP = 2000;
+        const totalRaw = allGames.length;
+        const truncated = totalRaw > LIBRARY_CAP;
+        const games = truncated
+          ? [...allGames].sort((a, b) => b.hours - a.hours).slice(0, LIBRARY_CAP)
+          : allGames;
+        return { steamID64, steamName, games, totalInLibrary: games.length, totalRaw, truncated, cap: LIBRARY_CAP };
+      } catch (e) { lastErr = e; }
+    }
+    throw lastErr || new Error('All proxies failed — add a Steam API key above for a more reliable connection.');
+  }
+
+  async function fetchSteamLibrary(ref) {
+    const key = getSteamApiKey();
+    if (key) return fetchSteamLibraryWithKey(key, ref);
+    return fetchSteamLibraryXml(ref);
+  }
+
+  function applyTasteToUI() {
+    const t = window.tasteProfile;
+    const empty = document.getElementById('tasteEmpty');
+    const loaded = document.getElementById('tasteLoaded');
+    const hint = document.getElementById('tasteAutoHint');
+    const refreshBtn = document.getElementById('tasteRefresh');
+    const lib = document.getElementById('tasteLibrary');
+
+    if (!t) {
+      empty.style.display = 'block';
+      loaded.style.display = 'none';
+      hint.style.display = 'none';
+      lib.style.display = 'none';
+      return;
+    }
+    empty.style.display = 'none';
+    loaded.style.display = 'block';
+    hint.style.display = 'inline';
+    document.getElementById('tasteName').textContent = t.name || 'your taste';
+    document.getElementById('tasteGenres').textContent =
+      (t.topGenres || []).join(' · ') || '—';
+    refreshBtn.style.display = (t.source === 'steam' && t.steamRef) ? '' : 'none';
+
+    if (t.library) {
+      lib.style.display = 'grid';
+      const L = t.library;
+      const sortedGenres = Object.entries(L.genreHours || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      const maxH = sortedGenres.length ? sortedGenres[0][1] : 1;
+      lib.innerHTML = `
+        <div class="lib-stat-row">
+          <div class="lib-stat">
+            <div class="lib-stat-label">games owned</div>
+            <div class="lib-stat-value">${L.matchedCount}<span style="font-size:0.6875rem; color:var(--text-200); margin-left:4px;">/ ${L.totalInLibrary}</span></div>
+          </div>
+          <div class="lib-stat">
+            <div class="lib-stat-label">total hours</div>
+            <div class="lib-stat-value">${L.totalHours.toLocaleString()}h</div>
+          </div>
+          <div class="lib-stat">
+            <div class="lib-stat-label">played</div>
+            <div class="lib-stat-value">${L.playedCount}</div>
+          </div>
+        </div>
+        ${L.topPlayed.length ? `
+          <div>
+            <div class="lib-section-title">Most played</div>
+            <div class="lib-played-list">
+              ${L.topPlayed.map(p => `
+                <div class="lib-played">
+                  <div class="lib-played-title">${p.title}</div>
+                  <div class="lib-played-hours">${p.hours}h</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+        ${sortedGenres.length ? `
+          <div>
+            <div class="lib-section-title">Genre breakdown</div>
+            <div class="lib-genre-bars">
+              ${sortedGenres.map(([gn, h]) => `
+                <div class="lib-genre-bar">
+                  <span class="lib-genre-name">${gn}</span>
+                  <div class="lib-genre-track"><div class="lib-genre-fill" style="width:${(h / maxH * 100).toFixed(1)}%;"></div></div>
+                  <span class="lib-genre-hours">${h}h</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+        <div class="taste-status" style="margin-top:0;">We matched ${L.matchedCount} of ${L.totalInLibrary} games against our database — only matched games count toward genre weights.</div>
+      `;
+    } else {
+      lib.style.display = 'none';
+    }
+
+    state.selectedGenres = new Set(t.topGenres || []);
+    document.querySelectorAll('#genrePills .pill').forEach(pill => {
+      const g = pill.dataset.g;
+      if (state.selectedGenres.has(g)) pill.classList.add('on');
+      else pill.classList.remove('on');
+    });
+  }
+
+  function setTaste(t) {
+    window.tasteProfile = t;
+    if (t) saveTaste(t); else clearTasteStorage();
+    applyTasteToUI();
+    renderSuggestions(document.getElementById('game').value);
+  }
+
+  /* favorites picker modal */
+  const favModal = document.getElementById('favModal');
+  const favGrid = document.getElementById('favGrid');
+  const favSearch = document.getElementById('favSearch');
+  const favCount = document.getElementById('favCount');
+  const favSave = document.getElementById('favSave');
+  let favPicked = new Set();
+  let favPendingName = null;
+  let favPendingSource = 'manual';
+
+  function openFavModal(name, source) {
+    favPendingName = name || 'your taste';
+    favPendingSource = source || 'manual';
+    favPicked = new Set((window.tasteProfile && window.tasteProfile.favorites) || []);
+    favSearch.value = '';
+    renderFavGrid('');
+    updateFavCount();
+    favModal.classList.add('open');
+    setTimeout(() => favSearch.focus(), 50);
+  }
+  function closeFavModal() { favModal.classList.remove('open'); }
+
+  function renderFavGrid(filter) {
+    const q = (filter || '').toLowerCase().trim();
+    const items = q
+      ? GAME_DB.filter(g => g.title.toLowerCase().includes(q))
+      : [...GAME_DB].sort((a,b) => b.popularity - a.popularity);
+    favGrid.innerHTML = items.slice(0, 60).map(g => `
+      <div class="fav-item ${favPicked.has(g.id) ? 'picked' : ''}" data-id="${g.id}">
+        <div class="fav-thumb" style="background-image: url('${g.capsule}')"></div>
+        <div class="fav-body">
+          <div class="fav-title">${g.title}</div>
+          <div class="fav-meta">${g.year} · ${g.genres.slice(0,3).join(' · ')}</div>
+        </div>
+        <div class="fav-check">${favPicked.has(g.id) ? '✓' : '+'}</div>
+      </div>
+    `).join('');
+    favGrid.querySelectorAll('.fav-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.id;
+        if (favPicked.has(id)) favPicked.delete(id); else favPicked.add(id);
+        el.classList.toggle('picked');
+        el.querySelector('.fav-check').textContent = favPicked.has(id) ? '✓' : '+';
+        updateFavCount();
+      });
+    });
+  }
+  function updateFavCount() {
+    favCount.textContent = favPicked.size;
+    favSave.disabled = favPicked.size === 0;
+  }
+
+  favSearch.addEventListener('input', e => renderFavGrid(e.target.value));
+  document.getElementById('favClose').addEventListener('click', closeFavModal);
+  favModal.addEventListener('click', (e) => { if (e.target === favModal) closeFavModal(); });
+  favSave.addEventListener('click', () => {
+    if (!favPicked.size) return;
+    const t = deriveTasteFromFavorites([...favPicked], favPendingName, favPendingSource);
+    setTaste(t);
+    closeFavModal();
+  });
+
+  document.getElementById('pickFavorites').addEventListener('click', () => {
+    openFavModal('your taste', 'manual');
+  });
+
+  /* Steam API key UI */
+  function refreshSteamKeyUI() {
+    const key = getSteamApiKey();
+    const hint = document.getElementById('steamKeyHint');
+    const status = document.getElementById('steamKeyStatus');
+    const toggle = document.getElementById('steamKeyToggle');
+    if (key) {
+      status.textContent = '● key saved · ';
+      toggle.textContent = 'remove';
+    } else {
+      status.textContent = '';
+      toggle.textContent = 'add Steam API key →';
+    }
+  }
+  refreshSteamKeyUI();
+
+  document.getElementById('steamKeyToggle').addEventListener('click', () => {
+    const key = getSteamApiKey();
+    if (key) {
+      try { localStorage.removeItem(STEAM_KEY_STORAGE); } catch(e) {}
+      refreshSteamKeyUI();
+      return;
+    }
+    const form = document.getElementById('steamKeyFormRow');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    if (form.style.display !== 'none') document.getElementById('steamKeyInput').focus();
+  });
+
+  document.getElementById('steamKeySave').addEventListener('click', () => {
+    const val = document.getElementById('steamKeyInput').value.trim();
+    if (!val) return;
+    try { localStorage.setItem(STEAM_KEY_STORAGE, val); } catch(e) {}
+    document.getElementById('steamKeyFormRow').style.display = 'none';
+    document.getElementById('steamKeyInput').value = '';
+    refreshSteamKeyUI();
+  });
+
+  document.getElementById('steamKeyCancel').addEventListener('click', () => {
+    document.getElementById('steamKeyFormRow').style.display = 'none';
+  });
+
+  /* deals browser modal */
+  const dealsModal = document.getElementById('dealsModal');
+  let dealsActiveGenre = 'all';
+  let dealsActiveSort = 'discount';
+
+  function getDealsPool() {
+    return GAME_DB.filter(g => {
+      if (!g.launch || g.launch <= 0) return false;
+      if (!g.low || g.low <= 0) return false;
+      const disc = (g.launch - g.low) / g.launch;
+      return disc >= 0.2;
+    });
+  }
+
+  function fmtDealPrice(p) { return fmtPrice(p); }
+
+  function renderDealsGrid() {
+    const grid = document.getElementById('dealsGrid');
+    const countEl = document.getElementById('dealsCount');
+    let pool = getDealsPool();
+
+    if (dealsActiveGenre !== 'all') {
+      pool = pool.filter(g => (g.genres || []).includes(dealsActiveGenre));
+    }
+
+    if (dealsActiveSort === 'discount') {
+      pool.sort((a, b) => ((b.launch - b.low) / b.launch) - ((a.launch - a.low) / a.launch));
+    } else if (dealsActiveSort === 'score') {
+      pool.sort((a, b) => (b.criticScore || 0) - (a.criticScore || 0));
+    } else {
+      pool.sort((a, b) => (b.launch || 0) - (a.launch || 0));
+    }
+
+    countEl.textContent = `· ${pool.length} found`;
+
+    if (!pool.length) {
+      grid.innerHTML = '<div class="deals-empty">No deals found for this filter. Run prefetch-steam.js to build a larger game library.</div>';
+      return;
+    }
+
+    grid.innerHTML = pool.slice(0, 80).map(g => {
+      const disc = Math.round(((g.launch - g.low) / g.launch) * 100);
+      const genres = (g.genres || []).slice(0, 2).join(' · ');
+      const thumb = g.capsule || '';
+      return `<div class="deal-card" data-id="${g.id || ''}" data-title="${(g.title || '').replace(/"/g, '&quot;')}">
+        <div class="deal-thumb" style="${thumb ? `background-image:url(${thumb})` : ''}">
+          <div class="deal-badge">-${disc}%</div>
+        </div>
+        <div class="deal-info">
+          <div class="deal-title">${g.title || '—'}</div>
+          <div class="deal-genre">${genres || (g.year || '')}</div>
+          <div class="deal-prices">
+            <span class="deal-price-was">${fmtDealPrice(g.launch)}</span>
+            <span class="deal-price-now">${fmtDealPrice(g.low)}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    grid.querySelectorAll('.deal-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.dataset.id;
+        const title = card.dataset.title;
+        const g = (id && GAME_DB.find(x => x.id === id)) || GAME_DB.find(x => x.title === title);
+        if (!g) return;
+        dealsModal.classList.remove('open');
+        applyPickedGame(g);
+        runCalc();
+        document.getElementById('result')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  document.getElementById('dealsOpen').addEventListener('click', () => {
+    renderDealsGrid();
+    dealsModal.classList.add('open');
+  });
+  document.getElementById('dealsClose').addEventListener('click', () => dealsModal.classList.remove('open'));
+  dealsModal.addEventListener('click', e => { if (e.target === dealsModal) dealsModal.classList.remove('open'); });
+
+  document.getElementById('dealsFilters').addEventListener('click', e => {
+    const btn = e.target.closest('.deals-filter-btn');
+    if (!btn) return;
+    document.querySelectorAll('.deals-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    dealsActiveGenre = btn.dataset.genre;
+    renderDealsGrid();
+  });
+
+  document.getElementById('dealsSort').addEventListener('change', e => {
+    dealsActiveSort = e.target.value;
+    renderDealsGrid();
+  });
+
+  async function runSteamConnect(refOverride) {
+    const inp = document.getElementById('steamUrl');
+    const status = document.getElementById('tasteStatus');
+    const btn = document.getElementById('steamConnect');
+    const refresh = document.getElementById('tasteRefresh');
+
+    const ref = refOverride || parseSteamInput(inp.value);
+    if (!ref) {
+      status.classList.remove('loading');
+      status.classList.add('error');
+      status.textContent = "Couldn't read that — try a steamcommunity.com URL or a 17-digit Steam ID.";
+      return;
+    }
+
+    status.classList.remove('error');
+    status.classList.add('loading');
+    const usingKey = !!getSteamApiKey();
+    status.textContent = usingKey ? `Fetching via Steam Web API…` : `Reaching Steam (trying 4 proxies)…`;
+    if (btn) btn.classList.add('loading');
+    if (refresh) refresh.classList.add('loading');
+
+    try {
+      const lib = await fetchSteamLibrary(ref);
+      if (!lib.games.length) {
+        throw new Error('No games found — your library may be set to Friends/Private. In Steam: Profile → Edit → Privacy → Game details = Public.');
+      }
+      const displayName = lib.steamName || ref.value;
+      const t = deriveTasteFromSteamLibrary(lib, displayName, 'steam', ref);
+      if (!t || !t.topGenres.length) {
+        throw new Error(`Found ${lib.games.length} games but none matched our database, or none had any playtime.`);
+      }
+      setTaste(t);
+      status.classList.remove('loading');
+      const capNote = t.library.truncated
+        ? ` · capped at top ${t.library.cap.toLocaleString()} of ${t.library.totalRaw.toLocaleString()} by playtime`
+        : '';
+      status.textContent = `Synced as ${displayName} · ${t.library.matchedCount} known games · ${t.library.totalHours.toLocaleString()}h tracked${capNote}.`;
+    } catch (err) {
+      status.classList.remove('loading');
+      status.classList.add('error');
+      const msg = err && err.message ? err.message : String(err);
+      const isProxyErr = /proxy|html.*xml|blocked/i.test(msg);
+      status.textContent = isProxyErr
+        ? `All CORS proxies failed (Steam is blocking them). Make sure your library is Public, then try again — or use the manual picker.`
+        : `Couldn't fetch — ${msg}. Try the manual favorites picker instead.`;
+    } finally {
+      if (btn) btn.classList.remove('loading');
+      if (refresh) refresh.classList.remove('loading');
+    }
+  }
+
+  document.getElementById('steamConnect').addEventListener('click', () => runSteamConnect());
+  document.getElementById('steamUrl').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') runSteamConnect();
+  });
+
+  document.getElementById('tasteClear').addEventListener('click', () => {
+    setTaste(null);
+    document.getElementById('steamUrl').value = '';
+    const status = document.getElementById('tasteStatus');
+    status.textContent = '';
+    status.classList.remove('error', 'loading');
+  });
+  document.getElementById('tasteEdit').addEventListener('click', () => {
+    const t = window.tasteProfile;
+    openFavModal(t ? t.name : 'your taste', t ? t.source : 'manual');
+  });
+  document.getElementById('tasteRefresh').addEventListener('click', () => {
+    const t = window.tasteProfile;
+    if (t && t.steamRef) runSteamConnect(t.steamRef);
+  });
+
+  window.tasteProfile = loadTaste();
+  applyTasteToUI();
+
+  renderSuggestions('');
+
+  function runCalc() {
+    const g = state.pickedGame;
+    if (!g) return;
+
+    const priceUsd = state.manualPrice != null
+      ? state.manualPrice
+      : (g.prices[state.selectedPlatform] || g.launch);
+
+    document.getElementById('emptyState').style.display = 'none';
+    const r = document.getElementById('receipt');
+    r.style.display = 'block';
+    r.style.animation = 'none'; void r.offsetWidth; r.style.animation = '';
+
+    const userGenres = Array.from(state.selectedGenres);
+
+    const dollarsPerHour = priceUsd / Math.max(g.hours.main, 1);
+    let costScore;
+    if (dollarsPerHour <= 0.25) costScore = 95;
+    else if (dollarsPerHour <= 0.5) costScore = 85;
+    else if (dollarsPerHour <= 1) costScore = 72;
+    else if (dollarsPerHour <= 1.5) costScore = 60;
+    else if (dollarsPerHour <= 2) costScore = 50;
+    else if (dollarsPerHour <= 3) costScore = 38;
+    else if (dollarsPerHour <= 5) costScore = 25;
+    else costScore = 12;
+
+    const density = g.hours.main / Math.max(g.hours.complete, 1);
+    const densityScore = density * 100;
+    let qualityScore = Math.round(densityScore * 0.45 + g.criticScore * 0.55);
+    qualityScore = Math.max(30, Math.min(96, qualityScore));
+
+    let genreScore;
+    const taste = window.tasteProfile;
+    const tasteWeights = (taste && taste.genreWeights) ? taste.genreWeights : null;
+    if (tasteWeights && Object.keys(tasteWeights).length) {
+      let weighted = 0, total = 0;
+      g.genres.forEach(gn => {
+        const w = tasteWeights[gn] || 0;
+        weighted += w; total += 1;
+      });
+      const avgWeight = total ? weighted / total : 0;
+      genreScore = Math.round(55 + avgWeight * 45);
+      if (userGenres.length) {
+        const overlap = g.genres.filter(x => userGenres.includes(x)).length;
+        const maxPossible = Math.min(g.genres.length, userGenres.length);
+        const manualScore = 50 + (overlap / Math.max(maxPossible, 1)) * 50;
+        genreScore = Math.round(genreScore * 0.5 + manualScore * 0.5);
+      }
+    } else if (userGenres.length === 0) {
+      genreScore = 55;
+    } else {
+      const overlap = g.genres.filter(x => userGenres.includes(x)).length;
+      const maxPossible = Math.min(g.genres.length, userGenres.length);
+      genreScore = Math.round(45 + (overlap / Math.max(maxPossible, 1)) * 50);
+    }
+    genreScore = Math.max(35, Math.min(98, genreScore));
+
+    const delta = Math.abs(g.criticScore - g.userScore);
+    let hypeScore;
+    if (delta < 5) hypeScore = (g.criticScore + g.userScore) / 2;
+    else hypeScore = ((g.criticScore + g.userScore) / 2) - delta * 0.4;
+    hypeScore = Math.max(25, Math.min(96, Math.round(hypeScore)));
+
+    const isFree = g.launch === 0 && priceUsd === 0;
+    const discountFromLaunch = isFree ? 0 : (g.launch - priceUsd) / g.launch;
+    const distFromLow = isFree ? 0 : (priceUsd - g.low) / Math.max(g.launch - g.low, 1);
+    let dealScore = isFree
+      ? 75
+      : Math.round(50 + discountFromLaunch * 50 - distFromLow * 30);
+    dealScore = Math.max(20, Math.min(96, dealScore));
+
+    const composite = Math.round(
+      costScore * 0.25 + qualityScore * 0.20 + genreScore * 0.20 +
+      hypeScore * 0.20 + dealScore * 0.15
+    );
+
+    let grade, verdict;
+    if (composite >= 80) { grade = 'S'; verdict = isFree ? 'must-play, and it costs nothing' : 'unmissable — exceptional value'; }
+    else if (composite >= 68) { grade = 'A'; verdict = isFree ? 'just install it — zero risk' : 'buy now — strong at this price'; }
+    else if (composite >= 55) { grade = 'B'; verdict = isFree ? 'try it — you have nothing to lose' : 'fair — better at a discount'; }
+    else if (composite >= 42) { grade = 'C'; verdict = isFree ? 'free, but only worth it if the genre fits' : 'wait for a sale'; }
+    else { grade = 'D'; verdict = isFree ? 'even free, probably skip' : 'skip, or wait for a deep discount'; }
+
+    document.getElementById('rCapsule').style.backgroundImage = `url('${g.capsule}')`;
+    document.getElementById('rTitle').textContent = g.title;
+    const platLabel = state.manualPrice != null ? 'manual' : (PLATFORM_LABELS[state.selectedPlatform] || '—');
+    const devStr = g.dev ? `<span>${g.dev}</span> · ` : '';
+    document.getElementById('rMeta').innerHTML =
+      `${g.year} · ${devStr}${g.genres.join(', ')} · ${platLabel}`;
+
+    const gradeEl = document.getElementById('rGrade');
+    gradeEl.textContent = grade;
+    gradeEl.setAttribute('data-g', grade);
+
+    document.getElementById('rScore').textContent = composite;
+    document.getElementById('rVerdict').textContent = verdict;
+
+    setTimeout(() => { document.getElementById('rMeter').style.width = composite + '%'; }, 100);
+
+    if (isFree) {
+      document.getElementById('rCoffee').innerHTML =
+        `It's free. Every hour of fun costs nothing but your time. <strong>${g.hours.main}h of free gameplay = priceless ratio.</strong>`;
+    } else {
+      const totalCoffees = (priceUsd / 5);
+      const hoursPerCoffee = g.hours.main / Math.max(totalCoffees, 0.1);
+      document.getElementById('rCoffee').innerHTML =
+        `That's ${totalCoffees.toFixed(1)} flat whites for ${g.hours.main} hours of ${grade === 'D' ? 'mediocrity' : 'gameplay'}. <strong>≈${hoursPerCoffee.toFixed(1)} hours per coffee.</strong>`;
+    }
+
+    const pillarData = [
+      ['Cost', costScore, isFree
+        ? `free to play · ${g.hours.main}h of gameplay at zero cost`
+        : `${fmtPrice(priceUsd)} ÷ ${g.hours.main}h = ${fmtPrice(dollarsPerHour)}/hr · ${dollarsPerHour < 1 ? 'below the $1/hr line' : 'above the $1/hr line'}`],
+      ['Quality', qualityScore, `${g.hours.main}h main, ${g.hours.complete}h to 100% — ${density > 0.7 ? 'tight, low-filler experience' : density > 0.4 ? 'moderate side content' : 'completionist territory, lots of filler'}`],
+      ['Genre', genreScore, userGenres.length === 0 ? 'no preferences set — neutral score applied' : `your taste: ${userGenres.join(', ')} · matches: ${g.genres.filter(x => userGenres.includes(x)).join(', ') || 'none'}`],
+      ['Hype', hypeScore, `critics ${g.criticScore} vs players ${g.userScore} — ${delta < 5 ? 'tightly aligned' : delta < 15 ? 'slight gap' : 'major disagreement'}`],
+      ['Deal', dealScore, isFree
+        ? `free to play — no price to discount`
+        : `${(discountFromLaunch * 100).toFixed(0)}% off launch · paying ${fmtPrice(priceUsd - g.low)} above all-time low`]
+    ];
+    pillarData.forEach(([key, score, detail]) => {
+      document.getElementById('s' + key).textContent = score;
+      document.getElementById('d' + key).textContent = detail;
+      const pillar = document.querySelector(`.pillar[data-id="${key.toLowerCase()}"]`);
+      if (score >= 70) pillar.classList.add('high'); else pillar.classList.remove('high');
+      setTimeout(() => { document.getElementById('b' + key).style.width = score + '%'; }, 200);
+    });
+
+    setTimeout(() => {
+      document.getElementById('hCritic').style.width = g.criticScore + '%';
+      document.getElementById('hUser').style.width = g.userScore + '%';
+      document.getElementById('hDelta').style.width = (delta * 5) + '%';
+    }, 300);
+    document.getElementById('hCriticN').textContent = g.criticScore;
+    document.getElementById('hUserN').textContent = g.userScore;
+    document.getElementById('hDeltaN').textContent = delta;
+
+    // Hype vs reality verdict text
+    const hypeVerdictEl = document.getElementById('rHypeVerdict');
+    if (hypeVerdictEl) {
+      let hvText, hvClass;
+      if (delta < 5) {
+        hvText = `Critics and players land within ${delta} points of each other — unusually rare. The consensus is real.`;
+        hvClass = 'gap-small';
+      } else if (delta < 15) {
+        if (g.criticScore > g.userScore) {
+          hvText = `Critics rated it <strong>${g.criticScore}</strong>, players settled at <strong>${g.userScore}</strong>. The press hype didn't fully carry — real-world play is cooler.`;
+        } else {
+          hvText = `Players rate it <strong>${g.userScore}</strong> vs critics' <strong>${g.criticScore}</strong>. The audience found something reviewers underweighted — usually community or replayability.`;
+        }
+        hvClass = 'gap-medium';
+      } else {
+        if (g.criticScore > g.userScore) {
+          hvText = `<strong>${delta}-point gap.</strong> Critics loved it, the player community didn't agree. You're buying the critics' version of this game — not the community's.`;
+        } else {
+          hvText = `<strong>${delta}-point gap.</strong> Players rate it far higher than critics. Often a sign of a niche gem the press missed, or one that got better post-launch.`;
+        }
+        hvClass = 'gap-large';
+      }
+      hypeVerdictEl.innerHTML = hvText;
+      hypeVerdictEl.className = `hype-verdict ${hvClass}`;
+    }
+
+    // Price bar chart
+    const barsEl = document.getElementById('rPriceBars');
+    if (barsEl) {
+      if (!isFree && g.launch > 0) {
+        const maxP = g.launch;
+        const nowW = Math.round(priceUsd / maxP * 100);
+        const lowW = Math.round(g.low / maxP * 100);
+        barsEl.innerHTML = `
+          <div class="price-bar-row is-launch">
+            <span class="price-bar-label">launch</span>
+            <div class="price-bar-track"><div class="price-bar-fill is-launch" data-w="100"></div></div>
+            <span class="price-bar-val">${fmtPrice(g.launch)}</span>
+          </div>
+          <div class="price-bar-row is-current">
+            <span class="price-bar-label">you pay</span>
+            <div class="price-bar-track"><div class="price-bar-fill is-current" data-w="${nowW}"></div></div>
+            <span class="price-bar-val">${fmtPrice(priceUsd)}</span>
+          </div>
+          <div class="price-bar-row is-low">
+            <span class="price-bar-label">all-time low</span>
+            <div class="price-bar-track"><div class="price-bar-fill is-low" data-w="${lowW}"></div></div>
+            <span class="price-bar-val">${fmtPrice(g.low)}</span>
+          </div>
+        `;
+        barsEl.style.display = 'block';
+        setTimeout(() => {
+          barsEl.querySelectorAll('.price-bar-fill').forEach(el => {
+            el.style.width = el.dataset.w + '%';
+          });
+        }, 350);
+      } else {
+        barsEl.style.display = 'none';
+      }
+    }
+
+    document.getElementById('dPaying').textContent = isFree ? 'FREE' : fmtPrice(priceUsd);
+    document.getElementById('dPayingSub').textContent = isFree
+      ? 'free to play'
+      : (priceUsd < g.launch ? `${(discountFromLaunch * 100).toFixed(0)}% off launch` : 'full price');
+    document.getElementById('dLow').textContent = isFree ? 'FREE' : fmtPrice(g.low);
+    const aboveLow = ((priceUsd - g.low) / Math.max(g.low, 0.01)) * 100;
+    document.getElementById('dLowSub').textContent = isFree
+      ? 'always free'
+      : (aboveLow < 5 ? 'matching all-time low' : `+${aboveLow.toFixed(0)}% above`);
+    document.getElementById('dLaunch').textContent = fmtPrice(g.launch);
+    document.getElementById('dLaunchSub').textContent = g.year + ' release';
+  }
+
+  // ---- How It Works — cross-highlight ----
+  function pillarHighlight(n, on) {
+    const all = document.querySelectorAll('.how-donut-seg,.how-leg-item,.how-pc,.hf-term[data-c]');
+    all.forEach(el => {
+      const c = +(el.dataset.c || (Array.from(el.classList).find(x => /^c\d$/.test(x)) || '').slice(1));
+      if (on) {
+        el.classList.toggle('active',  c === n);
+        el.classList.toggle('dimmed',  c !== n);
+      } else {
+        el.classList.remove('active', 'dimmed');
+      }
+    });
+  }
+  function bindPH(sel, getN) {
+    document.querySelectorAll(sel).forEach(el => {
+      el.addEventListener('mouseenter', () => pillarHighlight(getN(el), true));
+      el.addEventListener('mouseleave', () => pillarHighlight(getN(el), false));
+    });
+  }
+  bindPH('.how-donut-seg',    el => +el.dataset.c);
+  bindPH('.how-leg-item',     el => +el.dataset.c);
+  bindPH('.how-pc',           el => +el.dataset.c);
+  bindPH('.hf-term[data-c]',  el => +el.dataset.c);
+
+  // ---- How It Works page routing ----
+  const mainView  = document.getElementById('main-view');
+  const howView   = document.getElementById('how-view');
+  const heroVisual = document.querySelector('.hero-visual');
+  document.getElementById('navHow').addEventListener('click', e => {
+    e.preventDefault();
+    mainView.style.display   = 'none';
+    heroVisual.style.display = 'none';
+    howView.style.display    = 'block';
+    window.scrollTo(0, 0);
+  });
+  document.querySelectorAll('.how-back-btn, #howBack').forEach(btn => {
+    btn.addEventListener('click', () => {
+      howView.style.display    = 'none';
+      heroVisual.style.display = '';
+      mainView.style.display   = '';
+      window.scrollTo(0, 0);
+    });
+  });
+</script>
+
+</body>
+</html>
