@@ -1,0 +1,3 @@
+{
+  "rewrites": [{ "source": "/", "destination": "/worth-it-v2.html" }]
+}
