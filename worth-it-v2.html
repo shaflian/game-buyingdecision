@@ -685,6 +685,20 @@
   .deal-cell.is-current .deal-label { color: var(--primary); }
   .deal-cell.is-current .deal-value { color: var(--text-600); }
 
+  /* steam buy CTA */
+  .btn-steam {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px; border-radius: 4px;
+    background: var(--primary); color: #fff;
+    font-family: 'Space Grotesk', sans-serif; font-size: 0.8125rem; font-weight: 600;
+    letter-spacing: 0.03em; text-decoration: none;
+    transition: background var(--transition), box-shadow var(--transition);
+  }
+  .btn-steam:hover { background: #82d0f7; box-shadow: 0 0 18px rgba(102,192,244,0.35); }
+  [data-theme="light"] .btn-steam { color: #fff; }
+  [data-theme="light"] .btn-steam:hover { background: #1254a0; }
+  #rBuyBtn { display: none; margin: 20px 0 4px; }
+
   /* receipt footer */
   .receipt-foot {
     padding-top: 18px;
@@ -1715,6 +1729,13 @@
         <div id="rRec" class="rec-block" style="display:none;">
           <div class="rec-header">// if you like this</div>
           <div class="rec-games" id="rRecGames"></div>
+        </div>
+
+        <div id="rBuyBtn">
+          <a id="rBuyLink" class="btn-steam" href="#" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            View on Steam
+          </a>
         </div>
 
         <div class="receipt-foot">
@@ -2814,18 +2835,16 @@
   function fmtPrice(usd) {
     if (usd == null) return '—';
     const v = usd * RATES[currentCcy];
-    if (currentCcy === 'IDR' || currentCcy === 'JPY') {
-      return SYMBOLS[currentCcy] + ' ' + Math.round(v).toLocaleString('en-US');
-    }
+    if (currentCcy === 'IDR') return SYMBOLS[currentCcy] + ' ' + Math.round(v).toLocaleString('en-US').replace(/,/g, ' ');
+    if (currentCcy === 'JPY') return SYMBOLS[currentCcy] + ' ' + Math.round(v).toLocaleString('en-US');
     return SYMBOLS[currentCcy] + (currentCcy === 'EUR' || currentCcy === 'GBP' ? ' ' : '') + v.toFixed(2);
   }
 
   // Format a value already in the current regional currency (no conversion)
   function fmtRaw(regional) {
     if (regional == null) return '—';
-    if (currentCcy === 'IDR' || currentCcy === 'JPY') {
-      return SYMBOLS[currentCcy] + ' ' + Math.round(regional).toLocaleString('en-US');
-    }
+    if (currentCcy === 'IDR') return SYMBOLS[currentCcy] + ' ' + Math.round(regional).toLocaleString('en-US').replace(/,/g, ' ');
+    if (currentCcy === 'JPY') return SYMBOLS[currentCcy] + ' ' + Math.round(regional).toLocaleString('en-US');
     return SYMBOLS[currentCcy] + (currentCcy === 'EUR' || currentCcy === 'GBP' ? ' ' : '') + regional.toFixed(2);
   }
 
@@ -3032,9 +3051,9 @@
       const live = await fetchSteamPriceForApp(appId, currentCcy);
       if (!live || live.free || live.current == null || state.pickedGame?.id !== id) return;
       const rate = RATES[live.ccy] || 1;
-      // Scale historical low by actual regional ratio (more accurate than fixed rate)
+      // regional_low = usd_low × (regional_launch / usd_launch) — same ratio as actual price
       const adjLow = (g.launch > 0 && live.initial > 0 && typeof g.low === 'number')
-        ? g.low * live.initial / (g.launch * rate)
+        ? g.low * live.initial / g.launch
         : null;
       state.pickedGame = { ...state.pickedGame,
         prices: { ...state.pickedGame.prices, steam: live.current / rate },
@@ -3070,15 +3089,18 @@
     const g = state.pickedGame;
     const list = document.getElementById('platformList');
     const order = ['steam','ps5','xbox','switch'];
+    const lr = g._liveRegional;
     list.innerHTML = order.map(p => {
       const price = g.prices[p];
       const unavailable = price == null;
       const isOn = !unavailable && p === state.selectedPlatform;
-      const displayPrice = (isOn && state.manualPrice != null) ? state.manualPrice : price;
+      // Steam button always shows current live price when available; other platforms use DB
+      const hasLiveHere = p === 'steam' && lr && lr.ccy === currentCcy;
+      const priceLabel = unavailable ? 'n/a' : (hasLiveHere ? fmtRaw(lr.current) : fmtPrice(price));
       return `
         <button class="plat ${isOn ? 'on' : ''} ${unavailable ? 'unavailable' : ''}" data-p="${p}" ${unavailable ? 'disabled' : ''}>
           ${PLATFORM_LABELS[p]}
-          <span class="plat-price">${unavailable ? 'n/a' : fmtPrice(displayPrice)}</span>
+          <span class="plat-price">${priceLabel}</span>
         </button>
       `;
     }).join('');
@@ -4268,9 +4290,11 @@
       if (!isFree && g.launch > 0) {
         const lr = g._liveRegional;
         const hasLive = lr && lr.ccy === currentCcy && lr.initial > 0;
-        // Use live regional values for percentages when available (ratios are currency-neutral anyway)
         const refLaunch = hasLive ? lr.initial : g.launch;
-        const refNow    = hasLive ? lr.current  : priceUsd;
+        // when manual price is set, convert USD→regional so position stays consistent
+        const refNow = hasLive
+          ? (state.manualPrice != null ? state.manualPrice * RATES[currentCcy] : lr.current)
+          : priceUsd;
         const refLow    = hasLive && lr.low != null ? lr.low : g.low;
         const nowPct  = Math.round(refNow  / refLaunch * 100);
         const lowPct  = Math.round(refLow  / refLaunch * 100);
@@ -4292,7 +4316,7 @@
               <div class="price-pin-dot"></div>
               <div class="price-pin-label">
                 <span class="price-pin-name">${atLow ? 'you pay · all-time low' : 'you pay'}</span>
-                <span class="price-pin-val">${hasLive ? fmtRaw(lr.current) : fmtPrice(priceUsd)}</span>
+                <span class="price-pin-val">${state.manualPrice != null ? fmtPrice(state.manualPrice) : hasLive ? fmtRaw(lr.current) : fmtPrice(priceUsd)}</span>
               </div>
             </div>
             <div class="price-pin is-launch" style="left:100%">
@@ -4312,7 +4336,7 @@
 
     const lr = g._liveRegional;
     const hasLive = lr && lr.ccy === currentCcy;
-    document.getElementById('dPaying').textContent = isFree ? 'FREE' : (hasLive ? fmtRaw(lr.current) : fmtPrice(priceUsd));
+    document.getElementById('dPaying').textContent = isFree ? 'FREE' : state.manualPrice != null ? fmtPrice(state.manualPrice) : hasLive ? fmtRaw(lr.current) : fmtPrice(priceUsd);
     document.getElementById('dPayingSub').textContent = isFree
       ? 'free to play'
       : (priceUsd < g.launch ? `${(discountFromLaunch * 100).toFixed(0)}% off launch` : 'full price');
@@ -4362,6 +4386,17 @@
       }
     } else if (recEl) {
       recEl.style.display = 'none';
+    }
+
+    // Steam buy CTA — show for S/A/B grades when we have a Steam app ID
+    const buyBtn = document.getElementById('rBuyBtn');
+    const buyLink = document.getElementById('rBuyLink');
+    const appIdMatch = g.capsule && g.capsule.match(/steam\/apps\/(\d+)\//);
+    if (buyBtn && buyLink && appIdMatch && ['S', 'A', 'B'].includes(grade)) {
+      buyLink.href = `https://store.steampowered.com/app/${appIdMatch[1]}/`;
+      buyBtn.style.display = 'block';
+    } else if (buyBtn) {
+      buyBtn.style.display = 'none';
     }
   }
 
