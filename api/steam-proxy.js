@@ -21,6 +21,11 @@ module.exports = async function (req, res) {
     return res.status(403).json({ error: 'Forbidden host' });
   }
 
+  // Inject server-side API key for Steam Web API calls when the client has none
+  if (target.hostname === 'api.steampowered.com' && process.env.STEAM_API_KEY && !target.searchParams.get('key')) {
+    target.searchParams.set('key', process.env.STEAM_API_KEY);
+  }
+
   try {
     const upstream = await fetch(target.toString(), {
       headers: {
