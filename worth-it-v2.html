@@ -899,7 +899,7 @@
   }
 
   /* deals modal */
-  .deals-modal { width: min(760px, 96vw); }
+  .deals-modal { width: min(720px, 96vw); overflow-x: hidden; }
   .deals-filters {
     display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center;
   }
@@ -920,7 +920,7 @@
     color: var(--text-300); cursor: pointer;
   }
   .deals-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
     gap: 8px;
   }
   .deal-card {
@@ -1079,6 +1079,69 @@
   .hype-verdict.gap-medium { border-left-color: var(--orange); }
   .hype-verdict.gap-large { border-left-color: var(--red); }
   .hype-verdict strong { color: var(--text); font-weight: 600; }
+
+  /* taste-based receipt recommendations */
+  .rec-block {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .rec-header {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.5625rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin-bottom: 12px;
+  }
+  .rec-games {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .rec-games::-webkit-scrollbar { display: none; }
+  .rec-card {
+    flex: 0 0 auto;
+    width: 118px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--surface);
+    transition: border-color var(--transition), transform var(--transition);
+  }
+  .rec-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+  }
+  .rec-thumb {
+    width: 100%;
+    height: 54px;
+    background-size: cover;
+    background-position: center top;
+    background-color: var(--bg-600);
+  }
+  .rec-body {
+    padding: 7px 9px 8px;
+  }
+  .rec-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rec-match {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.5625rem;
+    color: var(--primary);
+    letter-spacing: 0.04em;
+  }
 
   /* price track chart */
   .price-bars { margin-bottom: 6px; }
@@ -1649,6 +1712,11 @@
           </div>
         </div>
 
+        <div id="rRec" class="rec-block" style="display:none;">
+          <div class="rec-header">// strong taste matches</div>
+          <div class="rec-games" id="rRecGames"></div>
+        </div>
+
         <div class="receipt-foot">
           <p>Hours via HowLongToBeat community averages · Prices via Steam, PlayStation Store, Xbox Marketplace, Nintendo eShop & Deku Deals · Reviews aggregated from Metacritic critic & user scores.</p>
           <p>Score is opinionated. So is taste.</p>
@@ -1822,6 +1890,7 @@
         <button class="deals-filter-btn" data-genre="story">Story</button>
         <button class="deals-filter-btn" data-genre="multiplayer">Multi</button>
         <select class="deals-sort" id="dealsSort">
+          <option value="smart">recommended</option>
           <option value="discount">% off ↓</option>
           <option value="score">score ↓</option>
           <option value="price">price ↓</option>
@@ -3041,6 +3110,7 @@
   document.getElementById('ccySelect').addEventListener('change', (e) => {
     currentCcy = e.target.value;
     try { localStorage.setItem('worthit.ccy', currentCcy); } catch(_) {}
+    dealsLiveCache.clear(); // stale — different currency
     if (state.pickedGame) {
       renderPlatforms();
       fetchAndApplyLivePrice(state.pickedGame.id); // re-fetch regional prices for new currency
@@ -3808,7 +3878,8 @@
   /* deals browser modal */
   const dealsModal = document.getElementById('dealsModal');
   let dealsActiveGenre = 'all';
-  let dealsActiveSort = 'discount';
+  let dealsActiveSort = 'smart';
+  const dealsLiveCache = new Map(); // gameId → { ccy, initial, adjLow }
 
   function getDealsPool() {
     return GAME_DB.filter(g => {
@@ -3820,6 +3891,33 @@
   }
 
   function fmtDealPrice(p) { return fmtPrice(p); }
+
+  function dealsSortScore(g) {
+    const disc = g.launch > 0 ? (g.launch - g.low) / g.launch : 0;
+    const pop = (g.popularity || 0) / 100;
+    const taste = window.tasteProfile;
+    let genreSim = 0;
+    if (taste && taste.genreWeights && g.genres) {
+      const ws = g.genres.map(gn => taste.genreWeights[gn] || 0);
+      genreSim = ws.length ? ws.reduce((a, b) => a + b, 0) / ws.length : 0;
+    }
+    return disc * 0.5 + genreSim * 0.3 + pop * 0.2;
+  }
+
+  async function refreshDealsLivePrices(pool) {
+    const toFetch = pool.slice(0, 20).filter(g => appIdFromCapsule(g.capsule));
+    await Promise.allSettled(toFetch.map(async g => {
+      const appId = appIdFromCapsule(g.capsule);
+      try {
+        const live = await fetchSteamPriceForApp(appId, currentCcy);
+        if (live && !live.free && live.initial > 0) {
+          const adjLow = g.launch > 0 ? g.low * live.initial / g.launch : null;
+          dealsLiveCache.set(g.id, { ccy: live.ccy, initial: live.initial, adjLow });
+        }
+      } catch (_) {}
+    }));
+    renderDealsGrid();
+  }
 
   function renderDealsGrid() {
     const grid = document.getElementById('dealsGrid');
@@ -3836,7 +3934,9 @@
       pool = pool.filter(g => (g.genres || []).includes(dealsActiveGenre));
     }
 
-    if (dealsActiveSort === 'discount') {
+    if (dealsActiveSort === 'smart') {
+      pool.sort((a, b) => dealsSortScore(b) - dealsSortScore(a));
+    } else if (dealsActiveSort === 'discount') {
       pool.sort((a, b) => ((b.launch - b.low) / b.launch) - ((a.launch - a.low) / a.launch));
     } else if (dealsActiveSort === 'score') {
       pool.sort((a, b) => (b.criticScore || 0) - (a.criticScore || 0));
@@ -3852,7 +3952,11 @@
     }
 
     grid.innerHTML = pool.slice(0, 80).map(g => {
-      const disc = Math.round(((g.launch - g.low) / g.launch) * 100);
+      const lr = dealsLiveCache.get(g.id);
+      const hasLive = lr && lr.ccy === currentCcy;
+      const disc = g.launch > 0 ? Math.round((g.launch - g.low) / g.launch * 100) : 0;
+      const fmtWas = hasLive ? fmtRaw(lr.initial) : fmtDealPrice(g.launch);
+      const fmtNow = hasLive && lr.adjLow != null ? fmtRaw(lr.adjLow) : fmtDealPrice(g.low);
       const genres = (g.genres || []).slice(0, 2).join(' · ');
       const thumb = g.capsule || '';
       return `<div class="deal-card" data-id="${g.id || ''}" data-title="${(g.title || '').replace(/"/g, '&quot;')}">
@@ -3863,8 +3967,8 @@
           <div class="deal-title">${g.title || '—'}</div>
           <div class="deal-genre">${genres || (g.year || '')}</div>
           <div class="deal-prices">
-            <span class="deal-price-was">${fmtDealPrice(g.launch)}</span>
-            <span class="deal-price-now">${fmtDealPrice(g.low)}</span>
+            <span class="deal-price-was">${fmtWas}</span>
+            <span class="deal-price-now">${fmtNow}</span>
           </div>
         </div>
       </div>`;
@@ -3885,8 +3989,18 @@
   }
 
   document.getElementById('dealsOpen').addEventListener('click', () => {
+    dealsLiveCache.clear(); // always re-fetch on open so prices are fresh
     renderDealsGrid();
     dealsModal.classList.add('open');
+    const pool = getDealsPool();
+    if (dealsActiveGenre === 'jrpg') {
+      const jrpgDevs = ['atlus','square enix','bandai namco','vanillaware','nis america','falcom','koei tecmo','level-5','monolith soft','acquire','gust','spike chunsoft','marvelous','sega'];
+      refreshDealsLivePrices(pool.filter(g => (g.genres||[]).includes('rpg') && jrpgDevs.some(d => (g.dev||'').toLowerCase().includes(d)||(g.pub||'').toLowerCase().includes(d))));
+    } else if (dealsActiveGenre !== 'all') {
+      refreshDealsLivePrices(pool.filter(g => (g.genres||[]).includes(dealsActiveGenre)));
+    } else {
+      refreshDealsLivePrices(pool);
+    }
   });
   document.getElementById('dealsClose').addEventListener('click', () => dealsModal.classList.remove('open'));
   dealsModal.addEventListener('click', e => { if (e.target === dealsModal) dealsModal.classList.remove('open'); });
@@ -4209,6 +4323,44 @@
       : (aboveLow < 5 ? 'matching all-time low' : `+${aboveLow.toFixed(0)}% above`);
     document.getElementById('dLaunch').textContent = hasLive ? fmtRaw(lr.initial) : fmtPrice(g.launch);
     document.getElementById('dLaunchSub').textContent = g.year + ' release';
+
+    // Taste-based recommendations at the bottom of the verdict
+    const recEl = document.getElementById('rRec');
+    const recGamesEl = document.getElementById('rRecGames');
+    if (recEl && recGamesEl) {
+      const taste = window.tasteProfile;
+      if (taste && taste.genreWeights && Object.keys(taste.genreWeights).length) {
+        const picks = [...GAME_DB]
+          .filter(x => x.id !== g.id && x.capsule && x.genres && x.genres.length)
+          .map(x => {
+            const raw = tasteMatchScore(x);
+            return { g: x, score: raw, avg: raw / x.genres.length };
+          })
+          .filter(x => x.avg >= 0.65)
+          .sort((a, b) => b.avg - a.avg)
+          .slice(0, 3);
+
+        if (picks.length) {
+          recGamesEl.innerHTML = picks.map(({ g: rec, avg }) =>
+            `<div class="rec-card" data-id="${escapeHtml(rec.id)}">
+              <div class="rec-thumb" style="background-image:url('${escapeHtml(rec.capsule)}')"></div>
+              <div class="rec-body">
+                <div class="rec-title">${escapeHtml(rec.title)}</div>
+                <div class="rec-match">${Math.round(avg * 100)}% match</div>
+              </div>
+            </div>`
+          ).join('');
+          recGamesEl.querySelectorAll('.rec-card').forEach(el => {
+            el.addEventListener('click', () => pickGame(el.dataset.id));
+          });
+          recEl.style.display = 'block';
+        } else {
+          recEl.style.display = 'none';
+        }
+      } else {
+        recEl.style.display = 'none';
+      }
+    }
   }
 
   // ---- How It Works — cross-highlight ----
