@@ -3535,8 +3535,11 @@
 
   async function fetchSteamLibrary(ref) {
     const key = getSteamApiKey();
-    if (key) return fetchSteamLibraryWithKey(key, ref);
-    return fetchSteamLibraryXml(ref);
+    // Always try the key-based path first; proxy injects STEAM_API_KEY server-side when key is empty
+    try { return await fetchSteamLibraryWithKey(key || '', ref); } catch (e) {
+      if (key) throw e; // user provided a key and it failed — surface the error
+      return fetchSteamLibraryXml(ref); // no key at all, fall back to XML
+    }
   }
 
   function applyTasteToUI() {
