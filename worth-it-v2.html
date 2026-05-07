@@ -3030,11 +3030,6 @@
       manualField.style.display = 'none';
       manualField.value = '';
     }
-    // Auto-apply historical low when game is 20%+ off launch (matches deals browser threshold)
-    if (typeof g.low === 'number' && g.low > 0 && typeof g.launch === 'number' && g.launch > 0 && g.low < g.launch * 0.8) {
-      state.manualPrice = g.low;
-      renderPlatforms();
-    }
     document.getElementById('calcBtn').disabled = false;
   }
 
