@@ -79,3 +79,86 @@ node scripts/prefetch-steam.js
 Default 500 games, ~3 min runtime. Override via `STEAM_COUNT=1000` (PS: `$env:STEAM_COUNT="1000"`) — diminishing returns past ~500 due to long-tail noise. Raise `STEAM_PAUSE` if 429s appear.
 
 The legacy `scripts/prefetch-rawg.js` is kept for users who already have a RAWG key, but Steam is the supported path.
+
+## Deployment
+
+- **GitHub:** `https://github.com/shaflian/game-buyingdecision`
+- **Vercel:** connected to GitHub, auto-deploys on every `git push origin main`
+- **Live domain:** `game-buyingdecision.shaflian.com`
+- **Entry point:** `worth-it-v2.html` — served at `/` via `vercel.json` rewrite
+- **Serverless function:** `api/steam-proxy.js` — registered in `vercel.json` under `functions`, `maxDuration: 10`
+- **To deploy:** `git add -p && git commit -m "..." && git push origin main`
+
+## Vercel Environment Variables
+
+| Variable | Where to set | Purpose |
+|---|---|---|
+| `STEAM_API_KEY` | Project Settings → Environment Variables → Production | Server-side Steam Web API key so all visitors can fetch their Steam library without entering their own key |
+
+**How it works:** `api/steam-proxy.js` injects `process.env.STEAM_API_KEY` into requests to `api.steampowered.com` only when the `key` param is absent/empty. Users who paste their own key in the UI still use theirs.
+
+**To update the key:** Vercel dashboard → Project Settings → Environment Variables → edit `STEAM_API_KEY` → redeploy.
+
+**Steam API key UI** (client-side fallback): "add Steam API key →" link under the Steam input stores key in `localStorage` under `worthit.steamKey.v1`. Only needed if the Vercel env var is not set.
+
+## Steam Library Fetch — How It Works
+
+1. User enters a Steam vanity name (`sapimomo`), custom URL (`steamcommunity.com/id/sapimomo`), or 17-digit Steam ID
+2. Parser (line ~3342) detects input type — vanity regex: `/^[A-Za-z0-9_-]{2,32}$/`
+3. For vanity names: calls `ResolveVanityURL` → gets Steam ID 64
+4. Then fetches `GetPlayerSummaries` (display name) + `GetOwnedGames` (library)
+5. All 3 calls go through `STEAM_PROXIES[0]` = `/api/steam-proxy?url=...` (Vercel proxy, CORS-free)
+6. Proxy injects `STEAM_API_KEY` env var server-side if no key in request
+
+## Favicon
+
+- `favicon.ico` + `favicon.png` — Gabe Newell photo (`gaben.jpg` in project root), cropped to square from top-center, resized to 32×32 via Python Pillow
+- Linked in `<head>` of `worth-it-v2.html` (lines 4–5)
+
+## Adding a new game to GAME_DB
+
+`GAME_DB` is the hand-curated array inside `worth-it-v2.html`. Find it with `const GAME_DB`. Each entry shape:
+
+```js
+{
+  id: 'unique-slug',           // kebab-case, used internally
+  title: 'Display Title',
+  year: 2024,
+  genres: ['rpg', 'story'],    // from KNOWN_GENRES list below
+  hltb: 50,                    // main-story hours (HLTB.com)
+  meta: 88,                    // Metacritic score (0–100), or omit if unknown
+  launch: 59.99,               // USD launch price
+  low: 29.99,                  // USD historical low (SteamDB)
+  capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/APPID/header.jpg',
+  // ^ use Steam CDN pattern — replace APPID with the Steam app ID
+}
+```
+
+**KNOWN_GENRES** (use only these strings):
+`rpg` · `souls` · `shooter` · `strategy` · `story` · `multiplayer` · `indie` · `open` · `roguelike` · `racing` · `puzzle`
+
+**Where to insert:** anywhere inside `GAME_DB = [ ... ]`. Add a comment header above groups (e.g. `// Persona / Atlus`) to keep it readable.
+
+**To find the Steam app ID:** go to the game's Steam store page — the number in the URL is the appid (`store.steampowered.com/app/APPID/`).
+
+**After editing:** commit + push. No build step needed.
+
+```
+git add worth-it-v2.html
+git commit -m "Add [Game Title] to GAME_DB"
+git push origin main
+```
+
+## Live price refresh (automatic, no push needed)
+
+When a user picks a game from the dropdown, `pickGame()` fires a background call to `fetchSteamPriceForApp(appId)`. If it resolves, it silently updates `state.pickedGame.prices.steam` and re-renders the platform row — no page reload, no push needed.
+
+This only works if the entry has a `capsule` URL with the Steam appid embedded (the CDN pattern above). Games without a capsule URL (Switch-only, etc.) keep their static prices.
+
+The live fetch goes through `CORS_PROXIES` / `STEAM_PROXIES` in order, including the first-party `/api/steam-proxy` Vercel serverless function — so it works reliably on the deployed site.
+
+**To force a full data refresh** (all 500+ games, prices + metadata):
+```powershell
+node scripts/prefetch-steam.js   # regenerates games.json
+git add games.json && git commit -m "Refresh games.json" && git push origin main
+```
