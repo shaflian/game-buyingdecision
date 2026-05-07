@@ -1713,7 +1713,7 @@
         </div>
 
         <div id="rRec" class="rec-block" style="display:none;">
-          <div class="rec-header">// strong taste matches</div>
+          <div class="rec-header">// if you like this</div>
           <div class="rec-games" id="rRecGames"></div>
         </div>
 
@@ -4324,42 +4324,44 @@
     document.getElementById('dLaunch').textContent = hasLive ? fmtRaw(lr.initial) : fmtPrice(g.launch);
     document.getElementById('dLaunchSub').textContent = g.year + ' release';
 
-    // Taste-based recommendations at the bottom of the verdict
+    // Game-similarity recommendations — refreshes for every selected game
     const recEl = document.getElementById('rRec');
     const recGamesEl = document.getElementById('rRecGames');
-    if (recEl && recGamesEl) {
-      const taste = window.tasteProfile;
-      if (taste && taste.genreWeights && Object.keys(taste.genreWeights).length) {
-        const picks = [...GAME_DB]
-          .filter(x => x.id !== g.id && x.capsule && x.genres && x.genres.length)
-          .map(x => {
-            const raw = tasteMatchScore(x);
-            return { g: x, score: raw, avg: raw / x.genres.length };
-          })
-          .filter(x => x.avg >= 0.65)
-          .sort((a, b) => b.avg - a.avg)
-          .slice(0, 3);
+    if (recEl && recGamesEl && g.genres && g.genres.length) {
+      const picks = [...GAME_DB]
+        .filter(x => x.id !== g.id && x.capsule && x.genres && x.genres.length)
+        .map(x => {
+          const shared = g.genres.filter(gn => x.genres.includes(gn));
+          const jaccard = shared.length / Math.max(g.genres.length, x.genres.length);
+          // small taste-profile tiebreaker so equally similar games surface ones you tend to like
+          const tasteBonus = (window.tasteProfile && window.tasteProfile.genreWeights)
+            ? tasteMatchScore(x) / x.genres.length * 0.15
+            : 0;
+          return { g: x, shared, score: jaccard + tasteBonus };
+        })
+        .filter(x => x.shared.length >= 1)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3);
 
-        if (picks.length) {
-          recGamesEl.innerHTML = picks.map(({ g: rec, avg }) =>
-            `<div class="rec-card" data-id="${escapeHtml(rec.id)}">
-              <div class="rec-thumb" style="background-image:url('${escapeHtml(rec.capsule)}')"></div>
-              <div class="rec-body">
-                <div class="rec-title">${escapeHtml(rec.title)}</div>
-                <div class="rec-match">${Math.round(avg * 100)}% match</div>
-              </div>
-            </div>`
-          ).join('');
-          recGamesEl.querySelectorAll('.rec-card').forEach(el => {
-            el.addEventListener('click', () => pickGame(el.dataset.id));
-          });
-          recEl.style.display = 'block';
-        } else {
-          recEl.style.display = 'none';
-        }
+      if (picks.length) {
+        recGamesEl.innerHTML = picks.map(({ g: rec, shared }) =>
+          `<div class="rec-card" data-id="${escapeHtml(rec.id)}">
+            <div class="rec-thumb" style="background-image:url('${escapeHtml(rec.capsule)}')"></div>
+            <div class="rec-body">
+              <div class="rec-title">${escapeHtml(rec.title)}</div>
+              <div class="rec-match">${shared.map(s => escapeHtml(s)).join(' · ')}</div>
+            </div>
+          </div>`
+        ).join('');
+        recGamesEl.querySelectorAll('.rec-card').forEach(el => {
+          el.addEventListener('click', () => pickGame(el.dataset.id));
+        });
+        recEl.style.display = 'block';
       } else {
         recEl.style.display = 'none';
       }
+    } else if (recEl) {
+      recEl.style.display = 'none';
     }
   }
 
