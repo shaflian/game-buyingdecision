@@ -149,16 +149,58 @@ git commit -m "Add [Game Title] to GAME_DB"
 git push origin main
 ```
 
-## Live price refresh (automatic, no push needed)
+## Live price refresh — regional accuracy
 
-When a user picks a game from the dropdown, `pickGame()` fires a background call to `fetchSteamPriceForApp(appId)`. If it resolves, it silently updates `state.pickedGame.prices.steam` and re-renders the platform row — no page reload, no push needed.
+When a user picks a game, `pickGame()` calls `fetchAndApplyLivePrice(id)` in the background, which fetches from `store.steampowered.com/api/appdetails?appids=APPID&cc=CC&filters=price_overview` and stores the result as `state.pickedGame._liveRegional`.
 
-This only works if the entry has a `capsule` URL with the Steam appid embedded (the CDN pattern above). Games without a capsule URL (Switch-only, etc.) keep their static prices.
+### Proxy order for `fetchSteamPriceForApp`
+1. `/api/steam-proxy` (Vercel serverless — most reliable, no CORS issues)
+2. `allorigins.win` (public fallback)
+3. `corsproxy.io` (public fallback)
 
-The live fetch goes through `CORS_PROXIES` / `STEAM_PROXIES` in order, including the first-party `/api/steam-proxy` Vercel serverless function — so it works reliably on the deployed site.
+`store.steampowered.com` is in the allowed-host list in `api/steam-proxy.js` — no key needed.
+
+### `_liveRegional` object
+```js
+{
+  ccy: 'IDR',         // which currency these amounts are in
+  current: 245999,    // live discounted price (Steam cents → regional unit)
+  initial: 491998,    // live launch price (same unit)
+  low: 245968         // derived: g.low_USD × (initial / g.launch_USD)
+}
+```
+Prices are stored as raw regional amounts (not converted to USD). Display helpers:
+- `fmtRaw(regional)` — format a value already in the current currency
+- `fmtLive(liveVal, usdFallback)` — use `_liveRegional` when `ccy` matches, else `fmtPrice(usd)`
+
+### Where live prices are used (Price Archaeology section)
+- `dPaying` → `fmtRaw(lr.current)` when live data available
+- `dLow` → `fmtRaw(lr.low)` (derived regional low)
+- `dLaunch` → `fmtRaw(lr.initial)` (exact Steam regional launch price)
+- Price track chart labels → same `fmtRaw` values
+- Score calculation always uses USD values (`g.launch`, `g.low`, `g.prices.steam`) — live fetch also updates these in USD via `/ RATES[ccy]` for score compatibility
+
+### Currency switch
+Changing the currency dropdown triggers `fetchAndApplyLivePrice` for the currently picked game, so prices re-fetch in the new region automatically.
+
+### GAME_DB `launch` / `low` fields
+Always stored in **USD**. The live fetch overrides display; static USD values are the fallback for games without a `capsule` URL or when the proxy is unavailable.
 
 **To force a full data refresh** (all 500+ games, prices + metadata):
 ```powershell
 node scripts/prefetch-steam.js   # regenerates games.json
 git add games.json && git commit -m "Refresh games.json" && git push origin main
 ```
+
+## Steam Library Fetch — `fetchSteamLibrary` routing
+
+`fetchSteamLibrary(ref)` always tries the API path (`fetchSteamLibraryWithKey`) first, even when no client key is saved. The Vercel proxy injects `STEAM_API_KEY` server-side when the `key` param is absent/empty (`!target.searchParams.get('key')` check in `api/steam-proxy.js`). XML fallback only runs if the API path throws and no key was provided.
+
+**If Steam fetch stops working:**
+1. Check the Vercel env var `STEAM_API_KEY` is set for Production + Preview
+2. Adding/editing the env var requires a redeploy — push an empty commit: `git commit --allow-empty -m "Trigger redeploy" && git push origin main`
+3. Steam API key domain registration (`steamcommunity.com/dev/apikey`) — any domain works, Steam doesn't enforce subdomain matching for server-side calls
+
+## GAME_DB — Free-to-Play entries
+
+Free games use `launch: 0, low: 0, prices: { steam: 0 }`. They are excluded from the Deals browser (`getDealsPool` filters `launch <= 0`). Current F2P entries: Dota 2 (570), CS2 (730), Apex Legends (1172470), Warframe (230410), Path of Exile (238960), TF2 (440). App IDs are embedded in the `capsule` URL for live price lookups.
