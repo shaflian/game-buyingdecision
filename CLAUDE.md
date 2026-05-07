@@ -174,11 +174,18 @@ Prices are stored as raw regional amounts (not converted to USD). Display helper
 - `fmtLive(liveVal, usdFallback)` — use `_liveRegional` when `ccy` matches, else `fmtPrice(usd)`
 
 ### Where live prices are used (Price Archaeology section)
-- `dPaying` → `fmtRaw(lr.current)` when live data available
+- `dPaying` ("CURRENT PRICE") → `fmtRaw(lr.current)` when live data available; no auto-apply of `g.low` — always shows real current price
 - `dLow` → `fmtRaw(lr.low)` (derived regional low)
 - `dLaunch` → `fmtRaw(lr.initial)` (exact Steam regional launch price)
 - Price track chart labels → same `fmtRaw` values
 - Score calculation always uses USD values (`g.launch`, `g.low`, `g.prices.steam`) — live fetch also updates these in USD via `/ RATES[ccy]` for score compatibility
+
+### Price track chart scaling
+Track goes from 0 → `trackMax = Math.max(refLaunch, refNow)` so the "you pay" pin never overflows the right edge when a game's price has risen above its launch price.
+- `nowPct = refNow / trackMax * 100` (always ≤ 100%)
+- `launchPct = refLaunch / trackMax * 100` (can be < 100% if price rose)
+- When pins are within 4% of each other (overlap), `.label-above` is added to the "you pay" pin so its label floats above the track while "launch" stays below — no stacking.
+- **Never** set `state.manualPrice = g.low` automatically. That caused `fmtPrice(usd)` to display a rough rate-converted amount instead of the real regional price.
 
 ### Currency switch
 Changing the currency dropdown triggers `fetchAndApplyLivePrice` for the currently picked game, so prices re-fetch in the new region automatically.
