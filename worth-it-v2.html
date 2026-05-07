@@ -2925,17 +2925,28 @@
     try { return localStorage.getItem(STEAM_KEY_STORAGE) || ''; } catch(e) { return ''; }
   }
 
+  async function fetchWithTimeout(url, ms) {
+    const ctrl = new AbortController();
+    const id = setTimeout(() => ctrl.abort(), ms);
+    try {
+      return await fetch(url, { signal: ctrl.signal });
+    } finally {
+      clearTimeout(id);
+    }
+  }
+
   const STEAM_PROXIES = [
     u => u,  // direct first — Steam Web API has CORS headers when called with a key
-    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `/api/steam-proxy?url=${encodeURIComponent(u)}`,
     u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
     u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
   ];
 
   async function steamApiFetch(url) {
     for (const wrap of STEAM_PROXIES) {
       try {
-        const r = await fetch(wrap(url));
+        const r = await fetchWithTimeout(wrap(url), 8000);
         if (!r.ok) continue;
         const text = await r.text();
         if (!text || text.length < 10) continue;
@@ -2990,44 +3001,49 @@
   async function fetchSteamLibraryXml(ref) {
     const path = ref.kind === 'id' ? `profiles/${ref.value}` : `id/${ref.value}`;
     const xmlUrl = `https://steamcommunity.com/${path}/games?tab=all&xml=1`;
+
     const proxies = [
-      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      u => `/api/steam-proxy?url=${encodeURIComponent(u)}`,
       u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
       u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
       u => `https://thingproxy.freeboard.io/fetch/${u}`
     ];
-    let lastErr;
-    for (const wrap of proxies) {
-      try {
-        const res = await fetch(wrap(xmlUrl));
-        if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
-        const text = await res.text();
-        if (!text || text.length < 50) { lastErr = new Error('Empty response'); continue; }
-        if (/<!DOCTYPE html/i.test(text) && !/<gamesList/i.test(text)) {
-          lastErr = new Error('Proxy blocked by Steam'); continue;
-        }
-        const doc = new DOMParser().parseFromString(text, 'text/xml');
-        if (doc.querySelector('parsererror')) { lastErr = new Error('Could not parse response'); continue; }
-        const errEl = doc.querySelector('error');
-        if (errEl) { lastErr = new Error(errEl.textContent.trim()); continue; }
-        if (!doc.querySelector('gamesList')) { lastErr = new Error('Profile may be private'); continue; }
-        const steamID64 = doc.querySelector('steamID64')?.textContent?.trim() || null;
-        const steamName = doc.querySelector('steamID')?.textContent?.trim() || null;
-        const allGames = [...doc.querySelectorAll('games > game')].map(node => ({
-          appId: node.querySelector('appID')?.textContent?.trim(),
-          name: node.querySelector('name')?.textContent?.trim(),
-          hours: parseFloat((node.querySelector('hoursOnRecord')?.textContent || '0').replace(/,/g, '')) || 0
-        })).filter(g => g.appId);
-        const LIBRARY_CAP = 2000;
-        const totalRaw = allGames.length;
-        const truncated = totalRaw > LIBRARY_CAP;
-        const games = truncated
-          ? [...allGames].sort((a, b) => b.hours - a.hours).slice(0, LIBRARY_CAP)
-          : allGames;
-        return { steamID64, steamName, games, totalInLibrary: games.length, totalRaw, truncated, cap: LIBRARY_CAP };
-      } catch (e) { lastErr = e; }
+
+    function parseXmlResult(text) {
+      if (!text || text.length < 50) throw new Error('Empty response');
+      if (/<!DOCTYPE html/i.test(text) && !/<gamesList/i.test(text)) throw new Error('Proxy blocked by Steam');
+      const doc = new DOMParser().parseFromString(text, 'text/xml');
+      if (doc.querySelector('parsererror')) throw new Error('Could not parse XML');
+      const errEl = doc.querySelector('error');
+      if (errEl) throw new Error(errEl.textContent.trim());
+      if (!doc.querySelector('gamesList')) throw new Error('Profile may be private — set Game details to Public in Steam Privacy Settings');
+      const steamID64 = doc.querySelector('steamID64')?.textContent?.trim() || null;
+      const steamName = doc.querySelector('steamID')?.textContent?.trim() || null;
+      const allGames = [...doc.querySelectorAll('games > game')].map(node => ({
+        appId: node.querySelector('appID')?.textContent?.trim(),
+        name: node.querySelector('name')?.textContent?.trim(),
+        hours: parseFloat((node.querySelector('hoursOnRecord')?.textContent || '0').replace(/,/g, '')) || 0
+      })).filter(g => g.appId);
+      const LIBRARY_CAP = 2000;
+      const totalRaw = allGames.length;
+      const truncated = totalRaw > LIBRARY_CAP;
+      const games = truncated ? [...allGames].sort((a, b) => b.hours - a.hours).slice(0, LIBRARY_CAP) : allGames;
+      return { steamID64, steamName, games, totalInLibrary: games.length, totalRaw, truncated, cap: LIBRARY_CAP };
     }
-    throw lastErr || new Error('All proxies failed — add a Steam API key above for a more reliable connection.');
+
+    async function tryOne(wrapFn) {
+      const res = await fetchWithTimeout(wrapFn(xmlUrl), 8000);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return parseXmlResult(await res.text());
+    }
+
+    // Fire all proxies in parallel — take the first that succeeds (max wait: 8s)
+    try {
+      return await Promise.any(proxies.map(wrap => tryOne(wrap)));
+    } catch {
+      throw new Error('All proxies failed — add a Steam API key above for a more reliable connection.');
+    }
   }
 
   async function fetchSteamLibrary(ref) {
@@ -3345,7 +3361,7 @@
     status.classList.remove('error');
     status.classList.add('loading');
     const usingKey = !!getSteamApiKey();
-    status.textContent = usingKey ? `Fetching via Steam Web API…` : `Reaching Steam (trying 4 proxies)…`;
+    status.textContent = usingKey ? `Fetching via Steam Web API…` : `Reaching Steam (5 routes in parallel)…`;
     if (btn) btn.classList.add('loading');
     if (refresh) refresh.classList.add('loading');
 
@@ -3369,10 +3385,13 @@
       status.classList.remove('loading');
       status.classList.add('error');
       const msg = err && err.message ? err.message : String(err);
-      const isProxyErr = /proxy|html.*xml|blocked/i.test(msg);
-      status.textContent = isProxyErr
-        ? `All CORS proxies failed (Steam is blocking them). Make sure your library is Public, then try again — or use the manual picker.`
-        : `Couldn't fetch — ${msg}. Try the manual favorites picker instead.`;
+      const isProxyErr = /proxy|html.*xml|blocked|failed to fetch|network|aborted/i.test(msg);
+      const isPrivate = /private|public|privacy/i.test(msg);
+      status.textContent = isPrivate
+        ? `${msg}`
+        : isProxyErr
+          ? `Steam is blocking all proxy routes. Deploy to Vercel for a reliable connection, or add a free Steam API key above.`
+          : `Couldn't fetch — ${msg}. Try the manual favorites picker instead.`;
     } finally {
       if (btn) btn.classList.remove('loading');
       if (refresh) refresh.classList.remove('loading');
