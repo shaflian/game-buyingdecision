@@ -1,3 +1,8 @@
 {
-  "rewrites": [{ "source": "/", "destination": "/worth-it-v2.html" }]
+  "rewrites": [
+    { "source": "/", "destination": "/worth-it-v2.html" }
+  ],
+  "functions": {
+    "api/steam-proxy.js": { "maxDuration": 10 }
+  }
 }
