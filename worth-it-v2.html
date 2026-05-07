@@ -1202,6 +1202,8 @@
     white-space: nowrap;
   }
   .price-pin.is-launch .price-pin-label { transform: translateX(-80%); }
+  .price-pin.is-now.at-edge .price-pin-label { transform: translateX(-80%); }
+  .price-pin.is-launch.not-edge .price-pin-label { transform: translateX(-50%); }
   .price-pin-name {
     display: block;
     font-family: 'IBM Plex Mono', monospace;
@@ -4296,8 +4298,11 @@
           ? (state.manualPrice != null ? state.manualPrice * RATES[currentCcy] : lr.current)
           : priceUsd;
         const refLow    = hasLive && lr.low != null ? lr.low : g.low;
-        const nowPct  = Math.round(refNow  / refLaunch * 100);
-        const lowPct  = Math.round(refLow  / refLaunch * 100);
+        // scale to max(launch, current) so "you pay" never overflows when price rose above launch
+        const trackMax  = Math.max(refLaunch, refNow);
+        const nowPct    = Math.round(refNow    / trackMax * 100);
+        const lowPct    = Math.round(refLow    / trackMax * 100);
+        const launchPct = Math.round(refLaunch / trackMax * 100);
         const atLow   = Math.abs(refNow - refLow) / Math.max(refLow, 0.01) < 0.05;
         const zonePct = Math.max(0, nowPct - lowPct);
         const lowPin = atLow ? '' : `
@@ -4312,14 +4317,14 @@
           <div class="price-track">
             <div class="price-track-zone" style="left:${lowPct}%;width:${zonePct}%"></div>
             ${lowPin}
-            <div class="price-pin is-now" style="left:${nowPct}%">
+            <div class="price-pin is-now${nowPct >= launchPct ? ' at-edge' : ''}" style="left:${nowPct}%">
               <div class="price-pin-dot"></div>
               <div class="price-pin-label">
                 <span class="price-pin-name">${atLow ? 'you pay · all-time low' : 'you pay'}</span>
                 <span class="price-pin-val">${state.manualPrice != null ? fmtPrice(state.manualPrice) : hasLive ? fmtRaw(lr.current) : fmtPrice(priceUsd)}</span>
               </div>
             </div>
-            <div class="price-pin is-launch" style="left:100%">
+            <div class="price-pin is-launch${launchPct < 100 ? ' not-edge' : ''}" style="left:${launchPct}%">
               <div class="price-pin-dot"></div>
               <div class="price-pin-label">
                 <span class="price-pin-name">launch</span>
