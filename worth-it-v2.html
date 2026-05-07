@@ -1788,11 +1788,11 @@
     <div class="how-grades-section">
       <div class="section-label">Grade Scale</div>
       <div class="how-grades">
-        <div class="how-grade-item" data-g="S"><span class="hgi-letter">S</span><span class="hgi-range">80–100</span><span class="hgi-label">Unmissable</span></div>
-        <div class="how-grade-item" data-g="A"><span class="hgi-letter">A</span><span class="hgi-range">68–79</span><span class="hgi-label">Buy now</span></div>
-        <div class="how-grade-item" data-g="B"><span class="hgi-letter">B</span><span class="hgi-range">55–67</span><span class="hgi-label">Fair price</span></div>
-        <div class="how-grade-item" data-g="C"><span class="hgi-letter">C</span><span class="hgi-range">42–54</span><span class="hgi-label">Wait for a sale</span></div>
-        <div class="how-grade-item" data-g="D"><span class="hgi-letter">D</span><span class="hgi-range">0–41</span><span class="hgi-label">Skip it</span></div>
+        <div class="how-grade-item" data-g="S"><span class="hgi-letter">S</span><span class="hgi-range">88–100</span><span class="hgi-label">Unmissable</span></div>
+        <div class="how-grade-item" data-g="A"><span class="hgi-letter">A</span><span class="hgi-range">72–87</span><span class="hgi-label">Buy now</span></div>
+        <div class="how-grade-item" data-g="B"><span class="hgi-letter">B</span><span class="hgi-range">55–71</span><span class="hgi-label">Fair price</span></div>
+        <div class="how-grade-item" data-g="C"><span class="hgi-letter">C</span><span class="hgi-range">35–54</span><span class="hgi-label">Wait for a sale</span></div>
+        <div class="how-grade-item" data-g="D"><span class="hgi-letter">D</span><span class="hgi-range">0–34</span><span class="hgi-label">Skip it</span></div>
       </div>
     </div>
 
@@ -3994,10 +3994,10 @@
     );
 
     let grade, verdict;
-    if (composite >= 80) { grade = 'S'; verdict = isFree ? 'must-play, and it costs nothing' : 'unmissable — exceptional value'; }
-    else if (composite >= 68) { grade = 'A'; verdict = isFree ? 'just install it — zero risk' : 'buy now — strong at this price'; }
+    if (composite >= 88) { grade = 'S'; verdict = isFree ? 'must-play, and it costs nothing' : 'unmissable — exceptional value'; }
+    else if (composite >= 72) { grade = 'A'; verdict = isFree ? 'just install it — zero risk' : 'buy now — strong at this price'; }
     else if (composite >= 55) { grade = 'B'; verdict = isFree ? 'try it — you have nothing to lose' : 'fair — better at a discount'; }
-    else if (composite >= 42) { grade = 'C'; verdict = isFree ? 'free, but only worth it if the genre fits' : 'wait for a sale'; }
+    else if (composite >= 35) { grade = 'C'; verdict = isFree ? 'free, but only worth it if the genre fits' : 'wait for a sale'; }
     else { grade = 'D'; verdict = isFree ? 'even free, probably skip' : 'skip, or wait for a deep discount'; }
 
     document.getElementById('rCapsule').style.backgroundImage = `url('${g.capsule}')`;
