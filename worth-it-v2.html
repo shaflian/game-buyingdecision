@@ -1205,6 +1205,7 @@
   .price-pin.is-launch .price-pin-label { transform: translateX(-80%); }
   .price-pin.is-now.at-edge .price-pin-label { transform: translateX(-80%); }
   .price-pin.is-launch.not-edge .price-pin-label { transform: translateX(-50%); }
+  .price-pin.is-now.label-above .price-pin-label { top: auto; bottom: 18px; }
   .price-pin-name {
     display: block;
     font-family: 'IBM Plex Mono', monospace;
@@ -1713,7 +1714,7 @@
         <div class="price-bars" id="rPriceBars" style="display:none;"></div>
         <div class="deal-block">
           <div class="deal-cell is-current">
-            <div class="deal-label">paying now</div>
+            <div class="deal-label">current price</div>
             <div class="deal-value" id="dPaying">—</div>
             <div class="deal-sub" id="dPayingSub">—</div>
           </div>
@@ -4313,7 +4314,7 @@
           <div class="price-track">
             <div class="price-track-zone" style="left:${lowPct}%;width:${zonePct}%"></div>
             ${lowPin}
-            <div class="price-pin is-now${nowPct >= launchPct ? ' at-edge' : ''}" style="left:${nowPct}%">
+            <div class="price-pin is-now${nowPct >= launchPct ? ' at-edge' : ''}${Math.abs(nowPct - launchPct) < 4 ? ' label-above' : ''}" style="left:${nowPct}%">
               <div class="price-pin-dot"></div>
               <div class="price-pin-label">
                 <span class="price-pin-name">${atLow ? 'you pay · all-time low' : 'you pay'}</span>
