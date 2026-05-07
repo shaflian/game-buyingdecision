@@ -673,6 +673,12 @@
   }
   .deal-cell .deal-sub { font-size: 0.6875rem; color: var(--text-300); margin-top: 4px; }
   .deal-cell.highlight .deal-value { color: var(--positive); }
+  .deal-cell.is-current {
+    border: 1px solid rgba(102,192,244,0.35);
+    background: rgba(102,192,244,0.06);
+  }
+  .deal-cell.is-current .deal-label { color: var(--primary); }
+  .deal-cell.is-current .deal-value { color: var(--text-600); }
 
   /* receipt footer */
   .receipt-foot {
@@ -1069,32 +1075,64 @@
   .hype-verdict.gap-large { border-left-color: var(--red); }
   .hype-verdict strong { color: var(--text); font-weight: 600; }
 
-  /* price bar chart */
-  .price-bars { margin-bottom: 6px; padding-bottom: 16px; }
-  .price-bars-title {
-    font-family: 'IBM Plex Sans', sans-serif; font-weight: 500;
-    font-size: 0.6875rem; color: var(--text-300);
-    letter-spacing: 0.06em; text-transform: uppercase;
-    margin-bottom: 14px;
+  /* price track chart */
+  .price-bars { margin-bottom: 6px; }
+  .price-track {
+    position: relative;
+    height: 2px;
+    background: var(--bg-400);
+    margin: 28px 0 52px;
   }
-  .price-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-  .price-bar-label {
-    width: 72px; flex-shrink: 0;
-    font-family: 'IBM Plex Mono', monospace; font-size: 0.625rem;
-    color: var(--text-300); letter-spacing: 0;
+  .price-track-zone {
+    position: absolute;
+    top: -1px; height: 4px;
+    background: linear-gradient(to right, rgba(164,208,7,0.5), rgba(248,168,25,0.5));
+    border-radius: 2px;
   }
-  .price-bar-track { flex: 1; height: 6px; background: var(--bg-400); position: relative; }
-  .price-bar-fill { position: absolute; left: 0; top: 0; height: 100%; width: 0; transition: width 1s ease 0.3s; }
-  .price-bar-fill.is-launch { background: var(--border-bright); }
-  .price-bar-fill.is-current { background: var(--orange); box-shadow: 0 0 6px rgba(248,168,25,0.4); }
-  .price-bar-fill.is-low { background: var(--positive); box-shadow: 0 0 6px rgba(164,208,7,0.35); }
-  .price-bar-val {
-    width: 60px; text-align: right; flex-shrink: 0;
-    font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem;
-    color: var(--text-600); letter-spacing: 0;
+  .price-pin {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center;
   }
-  .price-bar-row.is-low .price-bar-val { color: var(--positive); }
-  .price-bar-row.is-current .price-bar-val { color: var(--orange); }
+  .price-pin-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border-bright);
+  }
+  .price-pin.is-low .price-pin-dot {
+    width: 9px; height: 9px;
+    background: var(--positive);
+    box-shadow: 0 0 6px rgba(164,208,7,0.5);
+  }
+  .price-pin.is-now .price-pin-dot {
+    width: 14px; height: 14px;
+    background: var(--orange);
+    box-shadow: 0 0 10px rgba(248,168,25,0.55);
+    border: 2px solid rgba(248,168,25,0.25);
+  }
+  .price-pin-label {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    white-space: nowrap;
+  }
+  .price-pin.is-launch .price-pin-label { transform: translateX(-80%); }
+  .price-pin-name {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.5625rem; letter-spacing: 0;
+    color: var(--text-200); margin-bottom: 2px;
+  }
+  .price-pin-val {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6875rem; color: var(--text-600); letter-spacing: 0;
+  }
+  .price-pin.is-low .price-pin-val { color: var(--positive); }
+  .price-pin.is-now .price-pin-val { color: var(--orange); font-size: 0.75rem; font-weight: 700; }
 
   /* ---- How It Works page ---- */
   .how-view { padding-top: 40px; padding-bottom: 100px; }
@@ -1268,12 +1306,20 @@
   @media (max-width: 640px) {
     :root { --frame-pad: 16px; }
     .nav { margin-bottom: 0; }
+    .nav-brand { font-size: 0.8rem; white-space: nowrap; }
+    .nav-links { gap: 8px; }
     .hero { margin-bottom: 48px; padding-top: 220px; }
     .hero-visual { height: 480px; }
     .grade { font-size: 4.5rem; }
     .row { grid-template-columns: 1fr; }
     .deal-block { grid-template-columns: 1fr; }
     .nav-links a:not([id]) { display: none; }
+    .deals-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .deal-info { padding: 8px 8px; }
+    .deal-title { font-size: 0.75rem; }
+    .deal-genre { font-size: 0.5625rem; }
+    .deal-price-now { font-size: 0.8125rem; }
+    .deal-price-was { font-size: 0.625rem; }
   }
 
   /* View Transition */
@@ -1576,7 +1622,7 @@
         <div class="section-label">Price archaeology <span class="num">/ 04</span></div>
         <div class="price-bars" id="rPriceBars" style="display:none;"></div>
         <div class="deal-block">
-          <div class="deal-cell">
+          <div class="deal-cell is-current">
             <div class="deal-label">paying now</div>
             <div class="deal-value" id="dPaying">—</div>
             <div class="deal-sub" id="dPayingSub">—</div>
@@ -1759,6 +1805,7 @@
       <div class="deals-filters" id="dealsFilters">
         <button class="deals-filter-btn active" data-genre="all">All</button>
         <button class="deals-filter-btn" data-genre="rpg">RPG</button>
+        <button class="deals-filter-btn" data-genre="jrpg">JRPG</button>
         <button class="deals-filter-btn" data-genre="shooter">Shooter</button>
         <button class="deals-filter-btn" data-genre="strategy">Strategy</button>
         <button class="deals-filter-btn" data-genre="indie">Indie</button>
@@ -2727,7 +2774,7 @@
       }
     } else if (taste && taste.genreWeights) {
       const games = [...GAME_DB]
-        .filter(g => !(taste.favorites || []).includes(g.id))
+        .filter(g => !(taste.favorites || []).includes(g.id) && g.capsule)
         .map(g => ({ g, s: tasteMatchScore(g) * 0.7 + (g.popularity / 100) * 0.3 }))
         .sort((a, b) => b.s - a.s)
         .slice(0, 6)
@@ -2738,7 +2785,7 @@
       }));
       lbl.textContent = `— picked for you · ${(taste.topGenres || []).slice(0,3).join(' · ')}`;
     } else {
-      const topPool = [...GAME_DB].sort((a, b) => b.popularity - a.popularity).slice(0, 30);
+      const topPool = [...GAME_DB].filter(g => g.capsule).sort((a, b) => b.popularity - a.popularity).slice(0, 30);
       const games = topPool.sort(() => Math.random() - 0.5).slice(0, 6);
       items = games.map(g => ({
         id: g.id, title: g.title, year: g.year, dev: g.dev,
@@ -3696,7 +3743,13 @@
     const countEl = document.getElementById('dealsCount');
     let pool = getDealsPool();
 
-    if (dealsActiveGenre !== 'all') {
+    if (dealsActiveGenre === 'jrpg') {
+      const jrpgDevs = ['atlus','square enix','bandai namco','vanillaware','nis america','falcom','koei tecmo','level-5','monolith soft','acquire','gust','spike chunsoft','marvelous','sega'];
+      pool = pool.filter(g =>
+        (g.genres || []).includes('rpg') &&
+        jrpgDevs.some(d => (g.dev || '').toLowerCase().includes(d) || (g.pub || '').toLowerCase().includes(d))
+      );
+    } else if (dealsActiveGenre !== 'all') {
       pool = pool.filter(g => (g.genres || []).includes(dealsActiveGenre));
     }
 
@@ -4017,31 +4070,39 @@
     if (barsEl) {
       if (!isFree && g.launch > 0) {
         const maxP = g.launch;
-        const nowW = Math.round(priceUsd / maxP * 100);
-        const lowW = Math.round(g.low / maxP * 100);
+        const nowPct = Math.round(priceUsd / maxP * 100);
+        const lowPct = Math.round(g.low / maxP * 100);
+        const atLow = Math.abs(priceUsd - g.low) < 0.01;
+        const zonePct = Math.max(0, nowPct - lowPct);
+        const lowPin = atLow ? '' : `
+          <div class="price-pin is-low" style="left:${lowPct}%">
+            <div class="price-pin-dot"></div>
+            <div class="price-pin-label">
+              <span class="price-pin-name">all-time low</span>
+              <span class="price-pin-val">${fmtPrice(g.low)}</span>
+            </div>
+          </div>`;
         barsEl.innerHTML = `
-          <div class="price-bar-row is-launch">
-            <span class="price-bar-label">launch</span>
-            <div class="price-bar-track"><div class="price-bar-fill is-launch" data-w="100"></div></div>
-            <span class="price-bar-val">${fmtPrice(g.launch)}</span>
-          </div>
-          <div class="price-bar-row is-current">
-            <span class="price-bar-label">you pay</span>
-            <div class="price-bar-track"><div class="price-bar-fill is-current" data-w="${nowW}"></div></div>
-            <span class="price-bar-val">${fmtPrice(priceUsd)}</span>
-          </div>
-          <div class="price-bar-row is-low">
-            <span class="price-bar-label">all-time low</span>
-            <div class="price-bar-track"><div class="price-bar-fill is-low" data-w="${lowW}"></div></div>
-            <span class="price-bar-val">${fmtPrice(g.low)}</span>
+          <div class="price-track">
+            <div class="price-track-zone" style="left:${lowPct}%;width:${zonePct}%"></div>
+            ${lowPin}
+            <div class="price-pin is-now" style="left:${nowPct}%">
+              <div class="price-pin-dot"></div>
+              <div class="price-pin-label">
+                <span class="price-pin-name">${atLow ? 'you pay · all-time low' : 'you pay'}</span>
+                <span class="price-pin-val">${fmtPrice(priceUsd)}</span>
+              </div>
+            </div>
+            <div class="price-pin is-launch" style="left:100%">
+              <div class="price-pin-dot"></div>
+              <div class="price-pin-label">
+                <span class="price-pin-name">launch</span>
+                <span class="price-pin-val">${fmtPrice(g.launch)}</span>
+              </div>
+            </div>
           </div>
         `;
         barsEl.style.display = 'block';
-        setTimeout(() => {
-          barsEl.querySelectorAll('.price-bar-fill').forEach(el => {
-            el.style.width = el.dataset.w + '%';
-          });
-        }, 350);
       } else {
         barsEl.style.display = 'none';
       }
