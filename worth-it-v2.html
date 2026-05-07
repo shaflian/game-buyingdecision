@@ -2751,6 +2751,22 @@
     return SYMBOLS[currentCcy] + (currentCcy === 'EUR' || currentCcy === 'GBP' ? ' ' : '') + v.toFixed(2);
   }
 
+  // Format a value already in the current regional currency (no conversion)
+  function fmtRaw(regional) {
+    if (regional == null) return '—';
+    if (currentCcy === 'IDR' || currentCcy === 'JPY') {
+      return SYMBOLS[currentCcy] + ' ' + Math.round(regional).toLocaleString('en-US');
+    }
+    return SYMBOLS[currentCcy] + (currentCcy === 'EUR' || currentCcy === 'GBP' ? ' ' : '') + regional.toFixed(2);
+  }
+
+  // Use exact Steam regional price when available, fall back to USD × fixed rate
+  function fmtLive(liveVal, usdVal) {
+    const lr = state.pickedGame?._liveRegional;
+    if (lr && lr.ccy === currentCcy && liveVal != null) return fmtRaw(liveVal);
+    return fmtPrice(usdVal);
+  }
+
   const state = {
     pickedGame: null,
     selectedPlatform: null,
@@ -2938,26 +2954,35 @@
     return m ? m[1] : null;
   }
 
-  async function pickGame(id) {
-    const g = GAME_DB.find(x => x.id === id);
-    if (!g) return;
-    applyPickedGame(g);
-    // Silently refresh price from Steam in the background
+  async function fetchAndApplyLivePrice(id) {
+    const g = state.pickedGame;
+    if (!g || g.id !== id) return;
     const appId = appIdFromCapsule(g.capsule);
     if (!appId) return;
     try {
       const live = await fetchSteamPriceForApp(appId, currentCcy);
-      if (!live || live.free) return;
-      if (live.current != null && state.pickedGame?.id === id) {
-        state.pickedGame = { ...state.pickedGame,
-          prices: { ...state.pickedGame.prices, steam: live.current },
-          launch: live.initial ?? state.pickedGame.launch,
-          _livePriceRefreshed: true
-        };
-        renderPlatforms();
-        if (document.getElementById('receipt').style.display !== 'none') runCalc();
-      }
+      if (!live || live.free || live.current == null || state.pickedGame?.id !== id) return;
+      const rate = RATES[live.ccy] || 1;
+      // Scale historical low by actual regional ratio (more accurate than fixed rate)
+      const adjLow = (g.launch > 0 && live.initial > 0 && typeof g.low === 'number')
+        ? g.low * live.initial / (g.launch * rate)
+        : null;
+      state.pickedGame = { ...state.pickedGame,
+        prices: { ...state.pickedGame.prices, steam: live.current / rate },
+        launch: live.initial / rate,
+        _liveRegional: { ccy: live.ccy, current: live.current, initial: live.initial, low: adjLow },
+        _livePriceRefreshed: true
+      };
+      renderPlatforms();
+      if (document.getElementById('receipt').style.display !== 'none') runCalc();
     } catch (_) {}
+  }
+
+  async function pickGame(id) {
+    const g = GAME_DB.find(x => x.id === id);
+    if (!g) return;
+    applyPickedGame(g);
+    fetchAndApplyLivePrice(id);
   }
 
   async function pickRawgGame(rawgId) {
@@ -3016,7 +3041,10 @@
   document.getElementById('ccySelect').addEventListener('change', (e) => {
     currentCcy = e.target.value;
     try { localStorage.setItem('worthit.ccy', currentCcy); } catch(_) {}
-    if (state.pickedGame) renderPlatforms();
+    if (state.pickedGame) {
+      renderPlatforms();
+      fetchAndApplyLivePrice(state.pickedGame.id); // re-fetch regional prices for new currency
+    }
     if (document.getElementById('receipt').style.display !== 'none' && state.pickedGame) runCalc();
   });
 
@@ -3249,22 +3277,27 @@
   async function fetchSteamPriceForApp(appId, ccy = 'USD') {
     if (!appId) return null;
     const cc = CCY_TO_CC[ccy] || 'us';
-    const url = `https://store.steampowered.com/api/appdetails?appids=${appId}&cc=${cc}&filters=price_overview`;
-    for (const wrap of CORS_PROXIES) {
+    const steamUrl = `https://store.steampowered.com/api/appdetails?appids=${appId}&cc=${cc}&filters=price_overview`;
+    // Vercel proxy first (reliable, same-origin), then public CORS proxies as fallback
+    const proxies = [
+      u => `/api/steam-proxy?url=${encodeURIComponent(u)}`,
+      ...CORS_PROXIES
+    ];
+    for (const wrap of proxies) {
       try {
-        const res = await fetch(wrap(url));
+        const res = await fetch(wrap(steamUrl));
         if (!res.ok) continue;
         const json = await res.json();
         const data = json[appId];
         if (!data || !data.success) continue;
         const po = data.data && data.data.price_overview;
-        if (!po) return { current: null, initial: null, free: true };
-        // Steam returns prices in local currency units — convert back to USD for internal model
-        const rate = RATES[ccy] || 1;
+        if (!po) return { current: null, initial: null, free: true, ccy };
+        // Return raw regional amounts (Steam cents → regional unit); no USD conversion
         return {
-          current: (po.final || 0) / 100 / rate,
-          initial: (po.initial || 0) / 100 / rate,
+          current: (po.final || 0) / 100,
+          initial: (po.initial || 0) / 100,
           discount: po.discount_percent || 0,
+          ccy,
           free: false
         };
       } catch (e) { /* try next */ }
@@ -4119,17 +4152,22 @@
     const barsEl = document.getElementById('rPriceBars');
     if (barsEl) {
       if (!isFree && g.launch > 0) {
-        const maxP = g.launch;
-        const nowPct = Math.round(priceUsd / maxP * 100);
-        const lowPct = Math.round(g.low / maxP * 100);
-        const atLow = Math.abs(priceUsd - g.low) < 0.01;
+        const lr = g._liveRegional;
+        const hasLive = lr && lr.ccy === currentCcy && lr.initial > 0;
+        // Use live regional values for percentages when available (ratios are currency-neutral anyway)
+        const refLaunch = hasLive ? lr.initial : g.launch;
+        const refNow    = hasLive ? lr.current  : priceUsd;
+        const refLow    = hasLive && lr.low != null ? lr.low : g.low;
+        const nowPct  = Math.round(refNow  / refLaunch * 100);
+        const lowPct  = Math.round(refLow  / refLaunch * 100);
+        const atLow   = Math.abs(refNow - refLow) / Math.max(refLow, 0.01) < 0.05;
         const zonePct = Math.max(0, nowPct - lowPct);
         const lowPin = atLow ? '' : `
           <div class="price-pin is-low" style="left:${lowPct}%">
             <div class="price-pin-dot"></div>
             <div class="price-pin-label">
               <span class="price-pin-name">all-time low</span>
-              <span class="price-pin-val">${fmtPrice(g.low)}</span>
+              <span class="price-pin-val">${hasLive && lr.low != null ? fmtRaw(lr.low) : fmtPrice(g.low)}</span>
             </div>
           </div>`;
         barsEl.innerHTML = `
@@ -4140,14 +4178,14 @@
               <div class="price-pin-dot"></div>
               <div class="price-pin-label">
                 <span class="price-pin-name">${atLow ? 'you pay · all-time low' : 'you pay'}</span>
-                <span class="price-pin-val">${fmtPrice(priceUsd)}</span>
+                <span class="price-pin-val">${hasLive ? fmtRaw(lr.current) : fmtPrice(priceUsd)}</span>
               </div>
             </div>
             <div class="price-pin is-launch" style="left:100%">
               <div class="price-pin-dot"></div>
               <div class="price-pin-label">
                 <span class="price-pin-name">launch</span>
-                <span class="price-pin-val">${fmtPrice(g.launch)}</span>
+                <span class="price-pin-val">${hasLive ? fmtRaw(lr.initial) : fmtPrice(g.launch)}</span>
               </div>
             </div>
           </div>
@@ -4158,16 +4196,18 @@
       }
     }
 
-    document.getElementById('dPaying').textContent = isFree ? 'FREE' : fmtPrice(priceUsd);
+    const lr = g._liveRegional;
+    const hasLive = lr && lr.ccy === currentCcy;
+    document.getElementById('dPaying').textContent = isFree ? 'FREE' : (hasLive ? fmtRaw(lr.current) : fmtPrice(priceUsd));
     document.getElementById('dPayingSub').textContent = isFree
       ? 'free to play'
       : (priceUsd < g.launch ? `${(discountFromLaunch * 100).toFixed(0)}% off launch` : 'full price');
-    document.getElementById('dLow').textContent = isFree ? 'FREE' : fmtPrice(g.low);
+    document.getElementById('dLow').textContent = isFree ? 'FREE' : (hasLive && lr.low != null ? fmtRaw(lr.low) : fmtPrice(g.low));
     const aboveLow = ((priceUsd - g.low) / Math.max(g.low, 0.01)) * 100;
     document.getElementById('dLowSub').textContent = isFree
       ? 'always free'
       : (aboveLow < 5 ? 'matching all-time low' : `+${aboveLow.toFixed(0)}% above`);
-    document.getElementById('dLaunch').textContent = fmtPrice(g.launch);
+    document.getElementById('dLaunch').textContent = hasLive ? fmtRaw(lr.initial) : fmtPrice(g.launch);
     document.getElementById('dLaunchSub').textContent = g.year + ' release';
   }
 
