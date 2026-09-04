@@ -5,7 +5,9 @@
 // Usage: node scripts/prefetch-steam.js
 // Optional env:
 //   STEAM_COUNT=500     how many games to fetch (default 500)
-//   STEAM_PAUSE=300     ms between Steam appdetails calls (default 300, raise if 429s appear)
+//   STEAM_PAUSE=1500    ms between Steam appdetails calls (raise if 429s appear)
+//   STEAM_FULL_REFRESH=1  re-fetch metadata (metacritic, genres, year) for every game, not just new ones (~25 min)
+//   STEAM_SKIP_PRICE_REFRESH=1  skip the batched price refresh of existing games
 //
 // Output: games.json at repo root.
 
@@ -16,6 +18,8 @@ const TARGET = parseInt(process.env.STEAM_COUNT || '500', 10);
 const PAUSE = parseInt(process.env.STEAM_PAUSE || '1500', 10);
 const COOLDOWN_AFTER = parseInt(process.env.STEAM_COOLDOWN_AFTER || '5', 10); // n consecutive skips → cool down
 const COOLDOWN_MS = parseInt(process.env.STEAM_COOLDOWN_MS || '60000', 10);   // 60s sleep on rate-limit
+const FULL = process.env.STEAM_FULL_REFRESH === '1'; // re-fetch metadata for games already in the pool
+const MIN_SIGNAL = parseInt(process.env.STEAM_MIN_SIGNAL || '30', 10); // reviews+recs needed for fresh storefront picks
 const OUT = path.join(__dirname, '..', 'games.json');
 const UA = 'worth-it-prefetch/1.0 (https://github.com/shaflian)';
 
@@ -69,7 +73,7 @@ async function fetchSteamSpyTop() {
 }
 
 async function fetchSteamDetails(appid) {
-  const url = `https://store.steampowered.com/api/appdetails?appids=${appid}&cc=us&filters=basic,price_overview,genres,categories,release_date`;
+  const url = `https://store.steampowered.com/api/appdetails?appids=${appid}&cc=us&filters=basic,price_overview,genres,categories,release_date,metacritic,recommendations`;
   const json = await fetchJson(url);
   if (!json || !json[appid] || !json[appid].success) return null;
   return json[appid].data;
@@ -80,8 +84,11 @@ function mapEntry(ss, detail) {
   const negative = ss.negative || 0;
   const totalReviews = positive + negative;
   const userScore = totalReviews > 50 ? Math.round((positive / totalReviews) * 100) : 75;
+  // Steam exposes the Metacritic score for many titles — use it as the critic signal when present.
+  const meta = detail.metacritic && detail.metacritic.score ? detail.metacritic.score : null;
+  const steamRecs = (detail.recommendations && detail.recommendations.total) || 0;
 
-  const ownersLow = parseOwners(ss.owners);
+  const ownersLow = parseOwners(ss.owners) || steamRecs * 30; // SteamSpy lags for new releases; ~3% of owners review
   const popularity = ownersLow > 0
     ? Math.min(100, Math.max(40, Math.round(Math.log10(ownersLow + 1) * 12 + 20)))
     : 60;
@@ -118,14 +125,19 @@ function mapEntry(ss, detail) {
     title: detail.name || ss.name,
     year,
     dev, pub,
-    capsule: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${ss.appid}/header.jpg`,
+    // Newer titles live under a hashed path — trust Steam's own header_image (minus cache-buster) over the constructed URL.
+    capsule: detail.header_image ? detail.header_image.split('?')[0] : `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${ss.appid}/header.jpg`,
     genres: genres.length ? genres : [],
     hours: { main, extra: Math.round(main * 1.5), complete: Math.round(main * 2.5) },
     prices: { steam: isFree ? 0 : launch, ps5: null, xbox: null, switch: null, pc: launch },
     launch: isFree ? 0 : launch,
     low,
-    criticScore: userScore,
+    current: isFree ? 0 : current,                                   // price at fetch time
+    discount: !isFree && launch > 0 && current < launch ? Math.round((1 - current / launch) * 100) : 0, // % off at fetch time
+    criticScore: meta || userScore,
     userScore,
+    ...(meta ? { meta } : {}),
+    ...(detail.release_date && detail.release_date.date ? { released: detail.release_date.date } : {}),
     sentiment: userScore / 100,
     popularity,
     _prefetched: true,
@@ -133,10 +145,70 @@ function mapEntry(ss, detail) {
   };
 }
 
+// Steam only allows multiple appids per call when filters=price_overview — perfect for a cheap refresh.
+async function refreshPrices(games) {
+  const ids = games.map(g => parseInt((g.id || '').replace(/^st-/, ''), 10)).filter(Boolean);
+  const byId = new Map(games.map(g => [parseInt((g.id || '').replace(/^st-/, ''), 10), g]));
+  const BATCH = 50;
+  let updated = 0, changed = 0;
+  for (let i = 0; i < ids.length; i += BATCH) {
+    const chunk = ids.slice(i, i + BATCH);
+    const url = `https://store.steampowered.com/api/appdetails?appids=${chunk.join(',')}&cc=us&filters=price_overview`;
+    const json = await fetchJson(url);
+    process.stdout.write(`  prices ${Math.min(i + BATCH, ids.length)}/${ids.length}
+`);
+    if (!json) { await sleep(PAUSE); continue; }
+    for (const id of chunk) {
+      const g = byId.get(id);
+      const r = json[id];
+      if (!g || !r || !r.success || !r.data || !r.data.price_overview) continue;
+      const po = r.data.price_overview;
+      const launch = po.initial / 100;
+      const current = po.final / 100;
+      const low = current > 0 && current < launch ? current : Math.min(g.low || launch, launch);
+      const before = JSON.stringify([g.launch, g.low, g.prices && g.prices.steam]);
+      g.launch = launch;
+      g.low = Math.round(low * 100) / 100;
+      g.prices = Object.assign({}, g.prices, { steam: launch, pc: launch });
+      g.current = current;
+      g.discount = po.discount_percent || 0;
+      updated++;
+      if (before !== JSON.stringify([g.launch, g.low, g.prices.steam])) changed++;
+    }
+    await sleep(PAUSE);
+  }
+  console.log(`
+  Refreshed ${updated} prices (${changed} changed).`);
+}
+
+// Newest / trending titles: SteamSpy's owners ranking is slow to surface fresh releases,
+// so pull candidate appids from Steam's own storefront lists + SteamSpy 2-week chart.
+async function fetchFreshCandidates(existing) {
+  const ids = new Set();
+  const feat = await fetchJson('https://store.steampowered.com/api/featuredcategories?cc=us&l=en');
+  if (feat) {
+    for (const k of ['top_sellers', 'new_releases', 'specials']) {
+      for (const it of ((feat[k] && feat[k].items) || [])) if (it.id) ids.add(it.id);
+    }
+  }
+  const spy2w = await fetchJson('https://steamspy.com/api.php?request=top100in2weeks');
+  if (spy2w) for (const g of Object.values(spy2w)) if (g.appid) ids.add(g.appid);
+  const todo = [...ids].filter(id => !existing.has(id));
+  console.log(`  Fresh candidates: ${ids.size} (${todo.length} not yet in pool).`);
+  const out = [];
+  for (const id of todo) {
+    const ss = await fetchJson(`https://steamspy.com/api.php?request=appdetails&appid=${id}`);
+    await sleep(300);
+    if (ss && ss.appid && ss.name) out.push(ss);
+  }
+  return out;
+}
+
 function loadExisting() {
   try {
     if (!fs.existsSync(OUT)) return new Map();
-    const raw = JSON.parse(fs.readFileSync(OUT, 'utf8'));
+    const parsed = JSON.parse(fs.readFileSync(OUT, 'utf8'));
+    const raw = Array.isArray(parsed) ? parsed : (parsed.games || []);
     const m = new Map();
     for (const g of raw) {
       const id = (g.id || '').replace(/^st-/, '');
@@ -157,7 +229,7 @@ function saveProgress(games) {
     seen.add(k);
     deduped.push(g);
   }
-  fs.writeFileSync(OUT, JSON.stringify(deduped));
+  fs.writeFileSync(OUT, JSON.stringify({ generated: new Date().toISOString(), source: 'steam', games: deduped }));
   return deduped.length;
 }
 
@@ -176,12 +248,28 @@ async function main() {
     .sort((a, b) => parseOwners(b.owners) - parseOwners(a.owners))
     .slice(0, TARGET);
 
-  const todo = top.filter(g => !existing.has(parseInt(g.appid, 10)));
+  console.log(`
+Step 1b: fresh releases + trending (Steam storefront + SteamSpy 2-week)...`);
+  const fresh = await fetchFreshCandidates(existing);
+  const seenIds = new Set(top.map(g => parseInt(g.appid, 10)));
+  for (const g of fresh) if (!seenIds.has(parseInt(g.appid, 10))) { top.push(g); seenIds.add(parseInt(g.appid, 10)); }
+
+  if (existing.size && process.env.STEAM_SKIP_PRICE_REFRESH !== '1') {
+    console.log(`
+Step 1c: refreshing prices for ${existing.size} existing games (batched)...`);
+    await refreshPrices([...existing.values()]);
+  }
+
+  const freshIds = new Set(fresh.map(g => parseInt(g.appid, 10)));
+  const todo = FULL ? top : top.filter(g => !existing.has(parseInt(g.appid, 10)));
+  if (FULL) console.log(`  Full refresh: re-fetching metadata for all ${todo.length} games.`);
   const eta = Math.ceil(todo.length * PAUSE / 1000);
   console.log(`\nStep 2: Steam appdetails for ${todo.length} new games (~${Math.floor(eta / 60)}m ${eta % 60}s at ${PAUSE}ms pacing)...`);
   console.log(`         If 5+ skips in a row, will cool down ${COOLDOWN_MS / 1000}s and resume.\n`);
 
-  const games = [...existing.values()];
+  const games = FULL ? [] : [...existing.values()];
+  const todoIds = new Set(todo.map(g => parseInt(g.appid, 10)));
+  if (FULL) for (const [id, g] of existing) if (!todoIds.has(id)) games.push(g); // keep games that fell off the ranking
   let ok = 0, skipped = 0, failed = 0;
   let consecutiveSkips = 0;
   let saveCounter = 0;
@@ -193,7 +281,9 @@ async function main() {
     const detail = await fetchSteamDetails(ss.appid);
 
     if (!detail) {
-      console.log('skip (no detail)');
+      const prev = existing.get(parseInt(ss.appid, 10));
+      if (prev) { games.push(prev); console.log('kept (no detail)'); }
+      else console.log('skip (no detail)');
       skipped++;
       consecutiveSkips++;
       if (consecutiveSkips >= COOLDOWN_AFTER) {
@@ -206,6 +296,19 @@ async function main() {
       continue;
     }
 
+    if (detail.type !== 'game' || (detail.release_date && detail.release_date.coming_soon)) {
+      console.log(`skip (${detail.type !== 'game' ? detail.type : 'unreleased'})`);
+      skipped++;
+      await sleep(PAUSE);
+      continue;
+    }
+    const signal = ((ss.positive || 0) + (ss.negative || 0)) + ((detail.recommendations && detail.recommendations.total) || 0);
+    if (freshIds.has(parseInt(ss.appid, 10)) && signal < MIN_SIGNAL) {
+      console.log(`skip (too few reviews: ${signal})`);
+      skipped++;
+      await sleep(PAUSE);
+      continue;
+    }
     try {
       games.push(mapEntry(ss, detail));
       ok++;
