@@ -1,0 +1,9 @@
+# local agent tooling (installed via `npx skills add` / `npx impeccable install`)
+.claude/
+.agents/
+.codex/
+skills-lock.json
+
+# local
+node_modules/
+*.docx

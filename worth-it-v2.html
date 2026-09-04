@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Is that game worth buying? Score any Steam title by hours of play per dollar, review consensus, your taste, and how far the price is from its all-time low.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Game Buying Decision — how worth it is that game, really?">
+<meta property="og:description" content="A quiet calculator for noisy purchases. Playtime, price history, critic vs player scores, and your own taste — one verdict.">
+<meta property="og:url" content="https://game-buyingdecision.shaflian.com/">
+<meta property="og:image" content="https://game-buyingdecision.shaflian.com/tsutshima.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0e1826">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
 <script>
@@ -35,6 +43,8 @@
     --border: #2a475e;
     --border-bright: #3a6382;
     --transition: 0.18s ease;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);      /* strong ease-out: arrivals, presses, reveals */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);  /* on-screen movement */
     --frame-pad: 64px;
   }
 
@@ -157,8 +167,32 @@
     width: 100vw;
     height: 580px;
     z-index: 0;
-    background: url('tsutshima2.jpg') center 28% / cover no-repeat;
+    overflow: hidden;
   }
+  /* the art sits on its own layer so the cursor can drift it without moving the fade below */
+  .hero-visual__img {
+    position: absolute; inset: -4%;
+    background: url('tsutshima2.jpg') center 28% / cover no-repeat;
+    transform: scale(1.06);
+    will-change: transform;
+  }
+  /* a warm lantern that follows the cursor across the art — screen-blended so it lifts the paint, not the page */
+  .hero-light {
+    position: absolute; left: 0; top: 0;
+    width: 760px; height: 760px; margin: -380px 0 0 -380px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,226,180,0.30) 0%, rgba(255,214,160,0.12) 28%, rgba(255,200,140,0) 62%);
+    mix-blend-mode: screen;
+    opacity: 0;
+    transition: opacity 500ms var(--ease-out);
+    pointer-events: none;
+    will-change: transform, opacity;
+  }
+  [data-theme="light"] .hero-light {
+    mix-blend-mode: soft-light;
+    background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.4) 30%, rgba(255,255,255,0) 62%);
+  }
+  .hero { will-change: transform; }
   .hero-visual::after {
     content: '';
     position: absolute; inset: 0;
@@ -180,7 +214,6 @@
       rgba(238,241,245,1.0) 86%
     );
   }
-  [data-theme="light"] .hero-eyebrow { color: rgba(10, 32, 56, 0.6); }
   [data-theme="light"] .hero h1 { color: #0c1e2e; }
   [data-theme="light"] .hero h1 em { color: var(--primary); }
   [data-theme="light"] .hero p { color: rgba(16, 44, 72, 0.78); }
@@ -217,7 +250,8 @@
     text-transform: uppercase;
     color: var(--text-300);
   }
-  .nav-links a { color: inherit; text-decoration: none; transition: color var(--transition); }
+  .nav-links a { color: inherit; text-decoration: none; transition: color var(--transition); white-space: nowrap; }
+  .nav-short { display: none; }
   .nav-links a:hover { color: var(--primary); }
 
   .ccy-select {
@@ -232,7 +266,7 @@
     text-transform: uppercase;
     color: var(--text-300);
     cursor: pointer;
-    transition: all var(--transition);
+    transition: color var(--transition), background-color var(--transition), border-color var(--transition), box-shadow var(--transition), opacity var(--transition), transform 160ms var(--ease-out);
     appearance: none;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1L5 5L9 1' stroke='%2366c0f4' stroke-width='1.2'/></svg>");
     background-repeat: no-repeat;
@@ -249,7 +283,7 @@
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     color: var(--text-300);
-    transition: all var(--transition);
+    transition: color var(--transition), background-color var(--transition), border-color var(--transition), box-shadow var(--transition), opacity var(--transition), transform 160ms var(--ease-out);
   }
   .theme-toggle:hover { border-color: var(--primary); color: var(--primary); }
   .theme-toggle svg { width: 13px; height: 13px; }
@@ -265,15 +299,6 @@
     position: relative;
     z-index: 1;
     padding-top: 280px;
-  }
-  .hero-eyebrow {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-weight: 500;
-    font-size: 0.6875rem;
-    color: rgba(180, 210, 235, 0.78);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    margin-bottom: 16px;
   }
   .hero h1 {
     font-family: 'IBM Plex Sans', sans-serif;
@@ -300,7 +325,6 @@
     text-transform: uppercase;
     margin-bottom: 18px;
   }
-  .section-label .num { color: var(--text-200); margin-left: 2px; }
 
   h2.block-title {
     font-family: 'IBM Plex Sans', sans-serif;
@@ -410,7 +434,7 @@
     font-size: 0.6875rem; font-weight: 500;
     color: var(--text-300);
     letter-spacing: 0.03em; text-transform: uppercase;
-    transition: all var(--transition); text-align: center;
+    transition: color var(--transition), background-color var(--transition), border-color var(--transition), box-shadow var(--transition), opacity var(--transition), transform 160ms var(--ease-out); text-align: center;
   }
   .plat:hover { color: var(--text); border-color: var(--border-bright); }
   .plat.on { background: var(--primary); color: #0a1520; border-color: var(--primary); }
@@ -441,7 +465,7 @@
     font-size: 0.6875rem; font-weight: 500;
     letter-spacing: 0.03em; text-transform: uppercase;
     color: var(--text-300); background: var(--bg-600);
-    cursor: pointer; transition: all var(--transition);
+    cursor: pointer; transition: color var(--transition), background-color var(--transition), border-color var(--transition), box-shadow var(--transition), opacity var(--transition), transform 160ms var(--ease-out);
   }
   .pill:hover { color: var(--text); border-color: var(--border-bright); }
   .pill.on { background: var(--primary-100); color: var(--primary); border-color: var(--primary); }
@@ -454,16 +478,16 @@
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 0.8125rem; font-weight: 600;
     letter-spacing: 0.06em; text-transform: uppercase;
-    cursor: pointer; transition: all var(--transition);
+    cursor: pointer; transition: color var(--transition), background-color var(--transition), border-color var(--transition), box-shadow var(--transition), opacity var(--transition), transform 160ms var(--ease-out);
     display: inline-flex; align-items: center; gap: 12px;
   }
-  .btn-primary:hover { background: #82d0f7; box-shadow: 0 0 18px rgba(102,192,244,0.35); }
+  .btn-primary:hover { background: #82d0f7; }
   .btn-primary .arrow { transition: transform var(--transition); }
   .btn-primary:hover .arrow { transform: translateX(4px); }
   .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
   .btn-primary:disabled:hover { background: var(--primary); }
   [data-theme="light"] .btn-primary { color: #ffffff; }
-  [data-theme="light"] .btn-primary:hover { background: #1254a0; box-shadow: 0 0 18px rgba(21,98,176,0.3); }
+  [data-theme="light"] .btn-primary:hover { background: #1254a0; }
   [data-theme="light"] .btn-primary:disabled:hover { background: var(--primary); }
 
   /* ---------- Result ---------- */
@@ -486,10 +510,13 @@
   }
 
   /* receipt */
-  .receipt { opacity: 0; animation: rise 0.4s ease forwards; }
-  @keyframes rise {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+  .receipt > * {
+    opacity: 0; transform: translateY(10px); filter: blur(6px);
+  }
+  .receipt.in > * {
+    opacity: 1; transform: none; filter: blur(0);
+    transition: opacity 480ms var(--ease-out), transform 480ms var(--ease-out), filter 480ms var(--ease-out);
+    transition-delay: calc(var(--i, 0) * 45ms);
   }
 
   /* game header */
@@ -563,9 +590,9 @@
   }
   .meter-fill {
     position: absolute; left: 0; top: 0;
-    height: 100%; background: var(--primary);
-    transition: width 1.2s ease;
-    box-shadow: 0 0 8px rgba(102,192,244,0.5);
+    height: 100%; width: 100%; background: var(--primary);
+    transform: scaleX(0); transform-origin: left center;
+    transition: transform 900ms var(--ease-out);
   }
   .meter-ticks {
     position: relative; height: 14px;
@@ -613,10 +640,11 @@
   .pillar-bar-wrap { height: 2px; background: var(--border); margin-top: 8px; position: relative; }
   .pillar-bar {
     position: absolute; left: 0; top: -0.5px;
-    height: 3px; background: var(--text-200);
-    width: 0; transition: width 1s ease;
+    height: 3px; width: 100%; background: var(--text-200);
+    transform: scaleX(0); transform-origin: left center;
+    transition: transform 800ms var(--ease-out);
   }
-  .pillar.high .pillar-bar { background: var(--primary); box-shadow: 0 0 6px rgba(102,192,244,0.4); }
+  .pillar.high .pillar-bar { background: var(--primary); }
   .pillar-score {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 1.25rem; text-align: right;
@@ -633,9 +661,9 @@
     box-shadow: inset 0 1px 0 rgba(102, 192, 244, 0.1);
   }
   .coffee-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.6875rem; font-weight: 400;
-    letter-spacing: 0;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.6875rem; font-weight: 500;
+    letter-spacing: 0.05em; text-transform: uppercase;
     color: var(--primary); margin-bottom: 10px;
   }
   .coffee-line { font-size: 0.9375rem; color: var(--text-300); line-height: 1.55; }
@@ -652,7 +680,7 @@
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.625rem; color: var(--text-300); letter-spacing: 0;
     white-space: nowrap;
-    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 160ms var(--ease-out);
   }
   .metric-tab:hover {
     background: rgba(102, 192, 244, 0.1);
@@ -673,11 +701,11 @@
   .metric-tab.active .metric-icon { transform: scale(1.18); }
   @keyframes metricPop {
     0%   { transform: scale(1)    rotate(0deg); }
-    45%  { transform: scale(1.45) rotate(-14deg); }
+    45%  { transform: scale(1.32) rotate(-10deg); }
     100% { transform: scale(1.18) rotate(0deg); }
   }
   .metric-tab.popping .metric-icon {
-    animation: metricPop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: metricPop 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
   }
 
   /* playtime block in receipt */
@@ -701,7 +729,7 @@
     color: var(--text-light); letter-spacing: 0;
   }
   .hype-bar-wrap { height: 6px; background: var(--bg-400); }
-  .hype-bar { height: 100%; background: var(--text-300); width: 0; transition: width 1s ease 0.2s; }
+  .hype-bar { height: 100%; width: 100%; background: var(--text-300); transform: scaleX(0); transform-origin: left center; transition: transform 800ms var(--ease-out) 120ms; }
   .hype-bar.user { background: var(--primary); }
   .hype-bar.delta { background: var(--text-200); }
   .hype-num {
@@ -771,6 +799,9 @@
     color: var(--text-200);
   }
   .page-foot .accent { color: var(--primary); }
+  .page-foot > div { white-space: nowrap; }
+  .page-foot-right { display: flex; gap: 18px; }
+  #dataFresh:empty { display: none; }
 
   /* taste profile panel */
   .taste-panel {
@@ -802,7 +833,7 @@
     font-size: 0.75rem; font-weight: 500;
     letter-spacing: 0.04em; text-transform: uppercase;
     color: var(--text); cursor: pointer;
-    transition: all var(--transition);
+    transition: color var(--transition), background-color var(--transition), border-color var(--transition), box-shadow var(--transition), opacity var(--transition), transform 160ms var(--ease-out);
   }
   .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
   .taste-clear { padding: 5px 10px; font-size: 0.625rem; }
@@ -942,7 +973,7 @@
     border: 1px solid transparent;
     background: var(--bg-600);
     cursor: pointer;
-    transition: all var(--transition);
+    transition: color var(--transition), background-color var(--transition), border-color var(--transition), box-shadow var(--transition), opacity var(--transition), transform 160ms var(--ease-out);
   }
   .fav-item:hover { border-color: var(--border-bright); }
   .fav-item.picked { border-color: var(--primary); background: var(--primary-100); }
@@ -977,7 +1008,7 @@
     padding: 4px 10px;
     background: var(--bg-600); border: 1px solid var(--border);
     color: var(--text-300); cursor: pointer;
-    transition: all var(--transition);
+    transition: color var(--transition), background-color var(--transition), border-color var(--transition), box-shadow var(--transition), opacity var(--transition), transform 160ms var(--ease-out);
   }
   .deals-filter-btn:hover { border-color: var(--border-bright); color: var(--text); }
   .deals-filter-btn.active { border-color: var(--primary); color: var(--primary); background: var(--primary-100); }
@@ -993,7 +1024,7 @@
   }
   .deal-card {
     background: var(--bg-600); border: 1px solid var(--border);
-    cursor: pointer; transition: border-color var(--transition);
+    cursor: pointer; transition: border-color var(--transition), transform 160ms var(--ease-out);
     display: flex; flex-direction: column;
     min-width: 0; overflow: hidden;
   }
@@ -1090,6 +1121,17 @@
     margin-left: 6px;
     vertical-align: middle;
   }
+  .suggestion-new, .suggestion-sale {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.5rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 1px 5px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .suggestion-new { color: var(--primary); border: 1px solid var(--primary); }
+  .suggestion-sale { color: var(--positive); border: 1px solid var(--positive); }
   .suggestion.loading {
     pointer-events: none; opacity: 0.6;
   }
@@ -1116,7 +1158,7 @@
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 0.75rem; font-weight: 600;
     color: var(--orange);
-    cursor: pointer; transition: all var(--transition);
+    cursor: pointer; transition: color var(--transition), background-color var(--transition), border-color var(--transition), box-shadow var(--transition), opacity var(--transition), transform 160ms var(--ease-out);
     letter-spacing: 0.02em;
     display: flex; align-items: center; gap: 6px;
   }
@@ -1156,11 +1198,11 @@
     border-top: 1px solid var(--border);
   }
   .rec-header {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.5625rem;
-    letter-spacing: 0.09em;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.6875rem; font-weight: 500;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: var(--text-light);
+    color: var(--text-300);
     margin-bottom: 12px;
   }
   .rec-games {
@@ -1373,7 +1415,7 @@
   .hgi-label { font-size: 0.6875rem; color: var(--text-300); text-align: center; line-height: 1.4; }
   .how-back { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--border); }
   .how-topnav { display: flex; align-items: center; gap: 10px; margin-bottom: 40px; }
-  .how-back-btn { background: none; border: 1px solid var(--border); padding: 7px 16px; font-family: 'IBM Plex Sans', sans-serif; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.04em; color: var(--text-300); cursor: pointer; transition: all var(--transition); display: inline-flex; align-items: center; gap: 8px; }
+  .how-back-btn { background: none; border: 1px solid var(--border); padding: 7px 16px; font-family: 'IBM Plex Sans', sans-serif; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.04em; color: var(--text-300); cursor: pointer; transition: color var(--transition), background-color var(--transition), border-color var(--transition), box-shadow var(--transition), opacity var(--transition), transform 160ms var(--ease-out); display: inline-flex; align-items: center; gap: 8px; }
   .how-back-btn:hover { border-color: var(--primary); color: var(--primary); }
   .how-topnav-sep { color: var(--text-200); font-size: 0.75rem; }
   .how-topnav-current { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text); }
@@ -1445,15 +1487,20 @@
   }
   @media (max-width: 640px) {
     :root { --frame-pad: 16px; }
-    .nav { margin-bottom: 0; }
-    .nav-brand { font-size: 0.8rem; white-space: nowrap; }
-    .nav-links { gap: 8px; }
+    .nav { margin-bottom: 0; padding: 8px 14px; }
+    .nav-brand { font-size: 0.75rem; white-space: nowrap; letter-spacing: 0.02em; }
+    .nav-links { gap: 8px; flex-shrink: 0; }
+    .nav-long { display: none; }
+    .nav-short { display: inline; }
     .hero { margin-bottom: 48px; padding-top: 220px; }
     .hero-visual { height: 480px; }
     .grade { font-size: 4.5rem; }
     .row { grid-template-columns: 1fr; }
     .deal-block { grid-template-columns: 1fr; }
     .nav-links a:not([id]) { display: none; }
+    .page-foot { flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 64px; }
+    .page-foot > div { white-space: normal; }
+    .page-foot-right { flex-direction: column; gap: 4px; }
     .deals-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
     .deal-info { padding: 8px 8px; }
     .deal-title { font-size: 0.75rem; }
@@ -1462,10 +1509,35 @@
     .deal-price-was { font-size: 0.625rem; }
   }
 
+  /* ---------- Press feedback: every pressable thing answers the hand ---------- */
+  button:not(:disabled):active, .pill:active, .deal-card:active, .rec-card:active, .fav-item:active, .metric-tab:active {
+    transform: scale(0.97);
+    transition-duration: 100ms;
+  }
+  .rec-card:active { transform: scale(0.97) translateY(0); }
+
+  /* Hover motion only for pointers that can hover — taps shouldn't leave arrows stuck mid-flight */
+  @media (hover: none) {
+    .suggestion:hover .suggestion-arrow, .metric-tab:hover .metric-icon, .btn-primary:hover .arrow, .rec-card:hover { transform: none; }
+  }
+
+  /* ---------- Browser surfaces the palette should own ---------- */
+  ::selection { background: rgba(102, 192, 244, 0.32); color: var(--text-600); }
+  [data-theme="light"] ::selection { background: rgba(26, 114, 196, 0.22); color: #0c1e2e; }
+  .field { caret-color: var(--primary); }
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  .field:focus-visible { outline: none; }
+
+  /* ---------- Modal arrival: centered origin, fast, from almost-there ---------- */
+  @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.965) translateY(8px); } to { opacity: 1; transform: none; } }
+  .modal-backdrop.open { animation: backdropIn 200ms var(--ease-out); }
+  .modal-backdrop.open .modal { animation: modalIn 240ms var(--ease-out); }
+
   /* View Transition */
   ::view-transition-old(root) { animation: none; }
   ::view-transition-new(root) {
-    animation: clip-in 700ms ease;
+    animation: clip-in 620ms var(--ease-out);
     clip-path: circle(0% at var(--toggle-x, 90%) var(--toggle-y, 5%));
   }
   @keyframes clip-in {
@@ -1474,7 +1546,12 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+    * { transition-property: color, background-color, border-color, opacity, box-shadow !important; }
+    .receipt > * { opacity: 1 !important; transform: none !important; filter: none !important; transition: none !important; }
+    .meter-fill, .pillar-bar, .hype-bar { transition: none !important; }
+    .hero-light { display: none; }
+    .hero-visual__img, .hero { transform: none !important; }
   }
 </style>
 </head>
@@ -1484,13 +1561,13 @@
 
 <div class="frame">
 
-  <div class="hero-visual" aria-hidden="true"></div>
+  <div class="hero-visual" aria-hidden="true"><div class="hero-visual__img"></div><div class="hero-light"></div></div>
 
   <!-- NAV -->
   <nav class="nav">
     <div class="nav-brand">Game Buying Decision</div>
     <div class="nav-links">
-      <a href="#" id="navHow">how it scores</a>
+      <a href="#" id="navHow" aria-label="How it scores"><span class="nav-long">how it scores</span><span class="nav-short">how?</span></a>
       <select class="ccy-select" id="ccySelect" aria-label="Currency">
         <option value="USD">USD $</option>
         <option value="IDR">IDR Rp</option>
@@ -1515,7 +1592,6 @@
 
   <!-- HERO -->
   <section class="hero">
-    <div class="hero-eyebrow">a quiet calculator for noisy purchases</div>
     <h1>How <em>worth it</em> is buying<br>that game, really?</h1>
     <p>Not by hype, not by sale-tag adrenaline. By the only metric that survives the credits roll — hours of joy per dollar spent, weighted against your taste.</p>
   </section>
@@ -1525,7 +1601,7 @@
 
     <!-- LEFT -->
     <section>
-      <div class="section-label">Input <span class="num">/ 01</span></div>
+      <div class="section-label">Input</div>
       <h2 class="block-title">What are you eyeing?</h2>
       <p class="lede">Search a title — we'll fetch playtime, price across platforms, and review aggregates from the usual suspects.</p>
 
@@ -1664,7 +1740,7 @@
                 <div class="meter-marker major" style="left:72%"></div>
                 <div class="meter-marker major" style="left:88%"></div>
                 <div class="meter-marker" style="left:100%"></div>
-                <div class="meter-fill" id="rMeter" style="width:0%"></div>
+                <div class="meter-fill" id="rMeter"></div>
               </div>
             </div>
           </div>
@@ -1677,12 +1753,12 @@
             <button class="metric-tab" data-metric="tokens"><span class="metric-icon">🤖</span><span>claude</span></button>
             <button class="metric-tab" data-metric="mbg"><span class="metric-icon">🍱</span><span>MBG</span></button>
           </div>
-          <div class="coffee-label" id="rMetricLabel">// the coffee metric</div>
+          <div class="coffee-label" id="rMetricLabel">the coffee metric</div>
           <div class="coffee-line" id="rCoffee">—</div>
         </div>
 
         <div class="playtime-block">
-          <div class="section-label">Estimated Playtime <span class="num">/ 01</span> <span style="color:var(--text-200); font-size:0.6875rem; font-weight:400; letter-spacing:0; text-transform:none; font-family:'IBM Plex Sans',sans-serif;">via HowLongToBeat</span></div>
+          <div class="section-label">Estimated Playtime <span style="color:var(--text-200); font-size:0.6875rem; font-weight:400; letter-spacing:0; text-transform:none; font-family:'IBM Plex Sans',sans-serif;">via HowLongToBeat</span></div>
           <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0; border:1px solid var(--border);">
             <div style="padding:12px 14px; background:var(--bg-600);">
               <div style="font-family:'DM Mono',monospace; font-size:1.375rem; color:var(--text); line-height:1; letter-spacing:-0.01em;" id="hMain">—</div>
@@ -1699,7 +1775,7 @@
           </div>
         </div>
 
-        <div class="section-label">Breakdown <span class="num">/ 02</span></div>
+        <div class="section-label">Breakdown</div>
         <div class="pillars" id="rPillars">
           <div class="pillar" data-id="cost">
             <div class="pillar-num">I</div>
@@ -1749,7 +1825,7 @@
         </div>
 
         <div class="hype-block">
-          <div class="section-label">Hype vs. Reality <span class="num">/ 03</span></div>
+          <div class="section-label">Hype vs. Reality</div>
           <p class="lede">When critics and players disagree, it tells you something. A wide gap is rarely the player's fault.</p>
           <div class="hype-rows" id="rHype">
             <div class="hype-row">
@@ -1771,7 +1847,7 @@
           <div class="hype-verdict" id="rHypeVerdict"></div>
         </div>
 
-        <div class="section-label">Price archaeology <span class="num">/ 04</span></div>
+        <div class="section-label">Price archaeology</div>
         <div class="price-bars" id="rPriceBars" style="display:none;"></div>
         <div class="deal-block">
           <div class="deal-cell is-current">
@@ -1799,7 +1875,7 @@
         </div>
 
         <div id="rRec" class="rec-block" style="display:none;">
-          <div class="rec-header">// if you like this</div>
+          <div class="rec-header">if you like this</div>
           <div class="rec-games" id="rRecGames"></div>
         </div>
 
@@ -1815,8 +1891,8 @@
   </div>
 
   <footer class="page-foot">
-    <div>An interactive sketch by <span class="accent">Shaflian</span> · vibe-coded</div>
-    <div>Game Buying Decision v0.8</div>
+    <div>An interactive sketch by <span class="accent">Shaflian</span> · vibe-coded · a quiet calculator for noisy purchases</div>
+    <div class="page-foot-right"><span id="dataFresh"></span><span>Game Buying Decision v0.9</span></div>
   </footer>
 
   </div><!-- /main-view -->
@@ -2108,7 +2184,7 @@
     },
     {
       id: 'mario-wonder', title: 'Super Mario Bros. Wonder', year: 2023, dev: 'Nintendo', pub: 'Nintendo',
-      capsule: 'https://upload.wikimedia.org/wikipedia/en/8/8d/Super_Mario_Bros._Wonder_Box_Art.jpg',
+      capsule: 'https://upload.wikimedia.org/wikipedia/en/a/a3/Mariowonder.png',
       genres: ['puzzle','indie'],
       hours: { main: 11, extra: 17, complete: 28 },
       prices: { steam: null, ps5: null, xbox: null, switch: 59.99 },
@@ -2243,7 +2319,7 @@
     },
     {
       id: 'alan-wake-2', title: 'Alan Wake 2', year: 2023, dev: 'Remedy', pub: 'Epic Games',
-      capsule: 'https://upload.wikimedia.org/wikipedia/en/9/9d/Alan_Wake_2_cover.jpg',
+      capsule: 'https://upload.wikimedia.org/wikipedia/en/e/ed/Alan_Wake_2_box_art.jpg',
       genres: ['story','shooter'],
       hours: { main: 17, extra: 22, complete: 40 },
       prices: { steam: null, ps5: 49.99, xbox: 49.99, switch: null },
@@ -2351,7 +2427,7 @@
     },
     {
       id: 'tears-of-kingdom', title: 'The Legend of Zelda: Tears of the Kingdom', year: 2023, dev: 'Nintendo', pub: 'Nintendo',
-      capsule: 'https://upload.wikimedia.org/wikipedia/en/4/47/The_Legend_of_Zelda_Tears_of_the_Kingdom_cover.jpg',
+      capsule: 'https://upload.wikimedia.org/wikipedia/en/f/fb/The_Legend_of_Zelda_Tears_of_the_Kingdom_cover.jpg',
       genres: ['open','rpg','story','puzzle'],
       hours: { main: 60, extra: 130, complete: 235 },
       prices: { steam: null, ps5: null, xbox: null, switch: 69.99 },
@@ -2396,7 +2472,7 @@
     },
     {
       id: 'minecraft', title: 'Minecraft', year: 2011, dev: 'Mojang', pub: 'Microsoft',
-      capsule: 'https://upload.wikimedia.org/wikipedia/en/5/51/Minecraft_cover.png',
+      capsule: 'https://upload.wikimedia.org/wikipedia/commons/f/f4/Caves_%26_Cliffs_II_-_Alex_%26_Steve_I.png',
       genres: ['open','indie','multiplayer'],
       hours: { main: 30, extra: 100, complete: 350 },
       prices: { steam: null, ps5: 29.99, xbox: 29.99, switch: 29.99 },
@@ -2498,7 +2574,7 @@
 
     // Final Fantasy
     { id: 'ff16', title: 'Final Fantasy XVI', year: 2024, dev: 'Square Enix', pub: 'Square Enix',
-      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1828350/header.jpg',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2515020/header.jpg',
       genres: ['rpg','story'], hours: { main: 35, extra: 62, complete: 87 },
       prices: { steam: 49.99, ps5: 49.99, xbox: null, switch: null }, launch: 49.99, low: 29.99,
       criticScore: 87, userScore: 76, sentiment: 0.80, popularity: 80 },
@@ -2577,7 +2653,7 @@
       prices: { steam: 59.99, ps5: 59.99, xbox: 59.99, switch: 59.99 }, launch: 59.99, low: 11.99,
       criticScore: 82, userScore: 88, sentiment: 0.92, popularity: 73 },
     { id: 'tales-of-symphonia', title: 'Tales of Symphonia Remastered', year: 2023, dev: 'Bandai Namco', pub: 'Bandai Namco',
-      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1792050/header.jpg',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1900320/header.jpg',
       genres: ['rpg','story'], hours: { main: 40, extra: 54, complete: 80 },
       prices: { steam: 29.99, ps5: 29.99, xbox: 29.99, switch: 29.99 }, launch: 29.99, low: 7.49,
       criticScore: 68, userScore: 71, sentiment: 0.75, popularity: 65 },
@@ -2594,17 +2670,17 @@
 
     // Xenoblade (Switch)
     { id: 'xenoblade-3', title: 'Xenoblade Chronicles 3', year: 2022, dev: 'Monolith Soft', pub: 'Nintendo',
-      capsule: 'https://upload.wikimedia.org/wikipedia/en/1/18/Xenoblade_Chronicles_3_cover.jpg',
+      capsule: 'https://upload.wikimedia.org/wikipedia/en/7/76/Xenoblade_3.png',
       genres: ['rpg','story','open'], hours: { main: 81, extra: 100, complete: 150 },
       prices: { steam: null, ps5: null, xbox: null, switch: 59.99 }, launch: 59.99, low: 49.99,
       criticScore: 89, userScore: 91, sentiment: 0.94, popularity: 76 },
     { id: 'xenoblade-2', title: 'Xenoblade Chronicles 2', year: 2017, dev: 'Monolith Soft', pub: 'Nintendo',
-      capsule: 'https://upload.wikimedia.org/wikipedia/en/b/b6/Xenoblade_Chronicles_2.jpg',
+      capsule: 'https://upload.wikimedia.org/wikipedia/en/4/4a/Xenoblade_Chronicles_2.jpg',
       genres: ['rpg','story','open'], hours: { main: 75, extra: 102, complete: 170 },
       prices: { steam: null, ps5: null, xbox: null, switch: 59.99 }, launch: 59.99, low: 49.99,
       criticScore: 83, userScore: 85, sentiment: 0.88, popularity: 72 },
     { id: 'xenoblade-de', title: 'Xenoblade Chronicles: Definitive Edition', year: 2020, dev: 'Monolith Soft', pub: 'Nintendo',
-      capsule: 'https://upload.wikimedia.org/wikipedia/en/b/b7/Xenoblade_Chronicles_-_Definitive_Edition_cover.jpg',
+      capsule: 'https://upload.wikimedia.org/wikipedia/en/d/d9/Xenoblade_box_artwork.png',
       genres: ['rpg','story','open'], hours: { main: 67, extra: 80, complete: 140 },
       prices: { steam: null, ps5: null, xbox: null, switch: 59.99 }, launch: 59.99, low: 49.99,
       criticScore: 89, userScore: 91, sentiment: 0.94, popularity: 72 },
@@ -2653,12 +2729,12 @@
       prices: { steam: 19.99, ps5: 19.99, xbox: 19.99, switch: null }, launch: 19.99, low: 3.99,
       criticScore: 90, userScore: 94, sentiment: 0.96, popularity: 83 },
     { id: 'like-a-dragon-ishin', title: 'Like a Dragon: Ishin!', year: 2023, dev: 'Ryu Ga Gotoku', pub: 'Sega',
-      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1842210/header.jpg',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1805480/header.jpg',
       genres: ['story','rpg'], hours: { main: 28, extra: 40, complete: 70 },
       prices: { steam: 49.99, ps5: 49.99, xbox: 49.99, switch: null }, launch: 49.99, low: 14.99,
       criticScore: 79, userScore: 83, sentiment: 0.87, popularity: 70 },
     { id: 'like-a-dragon-gaiden', title: 'Like a Dragon Gaiden', year: 2023, dev: 'Ryu Ga Gotoku', pub: 'Sega',
-      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2291460/header.jpg',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2375550/header.jpg',
       genres: ['story','rpg'], hours: { main: 11, extra: 16, complete: 30 },
       prices: { steam: 49.99, ps5: 49.99, xbox: 49.99, switch: null }, launch: 49.99, low: 14.99,
       criticScore: 82, userScore: 88, sentiment: 0.91, popularity: 72 },
@@ -2690,7 +2766,7 @@
       prices: { steam: 59.99, ps5: null, xbox: 59.99, switch: 59.99 }, launch: 59.99, low: 11.99,
       criticScore: 83, userScore: 78, sentiment: 0.83, popularity: 69 },
     { id: 'triangle-strategy', title: 'Triangle Strategy', year: 2023, dev: 'Square Enix', pub: 'Square Enix',
-      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1596140/header.jpg',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1850510/header.jpg',
       genres: ['rpg','strategy','story'], hours: { main: 40, extra: 52, complete: 78 },
       prices: { steam: 59.99, ps5: null, xbox: null, switch: 59.99 }, launch: 59.99, low: 23.99,
       criticScore: 83, userScore: 82, sentiment: 0.86, popularity: 65 },
@@ -2746,7 +2822,7 @@
       prices: { steam: 59.99, ps5: 59.99, xbox: null, switch: null }, launch: 59.99, low: 35.99,
       criticScore: 84, userScore: 88, sentiment: 0.91, popularity: 76 },
     { id: 'code-vein', title: 'Code Vein', year: 2019, dev: 'Bandai Namco', pub: 'Bandai Namco',
-      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/885820/header.jpg',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/678960/header.jpg',
       genres: ['souls','rpg','story'], hours: { main: 22, extra: 31, complete: 54 },
       prices: { steam: 59.99, ps5: null, xbox: 59.99, switch: null }, launch: 59.99, low: 11.99,
       criticScore: 73, userScore: 79, sentiment: 0.82, popularity: 68 },
@@ -2770,12 +2846,12 @@
 
     // Fire Emblem / Nintendo
     { id: 'fire-emblem-3h', title: 'Fire Emblem: Three Houses', year: 2019, dev: 'Intelligent Systems', pub: 'Nintendo',
-      capsule: 'https://upload.wikimedia.org/wikipedia/en/6/6a/Fire_Emblem_Three_Houses_Key_Art.jpg',
+      capsule: 'https://upload.wikimedia.org/wikipedia/en/1/16/Fire_Emblem_Three_Houses.jpg',
       genres: ['rpg','strategy','story'], hours: { main: 49, extra: 62, complete: 180 },
       prices: { steam: null, ps5: null, xbox: null, switch: 59.99 }, launch: 59.99, low: 39.99,
       criticScore: 89, userScore: 89, sentiment: 0.93, popularity: 80 },
     { id: 'fire-emblem-engage', title: 'Fire Emblem Engage', year: 2023, dev: 'Intelligent Systems', pub: 'Nintendo',
-      capsule: 'https://upload.wikimedia.org/wikipedia/en/2/23/Fire_Emblem_Engage_Cover.jpg',
+      capsule: 'https://upload.wikimedia.org/wikipedia/en/f/f6/Fire_Emblem_Engage.jpg',
       genres: ['rpg','strategy','story'], hours: { main: 38, extra: 53, complete: 100 },
       prices: { steam: null, ps5: null, xbox: null, switch: 59.99 }, launch: 59.99, low: 39.99,
       criticScore: 83, userScore: 75, sentiment: 0.80, popularity: 70 },
@@ -2843,7 +2919,7 @@
       prices: { steam: 19.99, ps5: 19.99, xbox: 19.99, switch: 19.99 }, launch: 19.99, low: 4.99,
       criticScore: 84, userScore: 95, sentiment: 0.97, popularity: 70 },
     { id: 'eiyuden-chronicle', title: 'Eiyuden Chronicle: Hundred Heroes', year: 2024, dev: 'Rabbit & Bear Studios', pub: 'Koch Media',
-      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1452440/header.jpg',
+      capsule: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1658280/header.jpg',
       genres: ['rpg','story'], hours: { main: 55, extra: 70, complete: 100 },
       prices: { steam: 49.99, ps5: 49.99, xbox: 49.99, switch: 49.99 }, launch: 49.99, low: 34.99,
       criticScore: 81, userScore: 83, sentiment: 0.86, popularity: 65 },
@@ -2943,6 +3019,15 @@
     }[c]));
   }
 
+  // "New" = released within the last 90 days (uses the Steam release date captured by the prefetch)
+  function isNewRelease(g) {
+    if (!g || !g.released) return false;
+    const d = new Date(g.released);
+    if (isNaN(d.getTime())) return false;
+    const age = (Date.now() - d.getTime()) / 86400000;
+    return age >= 0 && age <= 90;
+  }
+
   function renderSuggestions(filter, liveResults) {
     const list = document.getElementById('suggestionsList');
     const lbl = document.getElementById('suggestionsLabel');
@@ -2954,7 +3039,7 @@
       const q = filter.toLowerCase();
       const localMatches = GAME_DB.filter(g => g.title.toLowerCase().includes(q));
       const localItems = localMatches.map(g => ({
-        id: g.id, title: g.title, year: g.year, dev: g.dev,
+        id: g.id, title: g.title, year: g.year || '—', dev: g.dev,
         capsule: g.capsule, genres: g.genres, _live: false, _g: g
       }));
       const localTitles = new Set(localMatches.map(m => m.title.toLowerCase()));
@@ -2993,15 +3078,19 @@
         .slice(0, 6)
         .map(x => x.g);
       items = games.map(g => ({
-        id: g.id, title: g.title, year: g.year, dev: g.dev,
+        id: g.id, title: g.title, year: g.year || '—', dev: g.dev,
         capsule: g.capsule, genres: g.genres, _live: false, _g: g
       }));
       lbl.textContent = `— picked for you · ${(taste.topGenres || []).slice(0,3).join(' · ')}`;
     } else {
-      const topPool = [...GAME_DB].filter(g => g.capsule).sort((a, b) => b.popularity - a.popularity).slice(0, 30);
-      const games = topPool.sort(() => Math.random() - 0.5).slice(0, 6);
+      // two of the freshest well-reviewed releases, then a shuffle of the evergreen top 30
+      const fresh = GAME_DB.filter(g => g.capsule && isNewRelease(g))
+        .sort((a, b) => (b.popularity || 0) - (a.popularity || 0)).slice(0, 2);
+      const freshIds = new Set(fresh.map(g => g.id));
+      const topPool = [...GAME_DB].filter(g => g.capsule && !freshIds.has(g.id)).sort((a, b) => b.popularity - a.popularity).slice(0, 30);
+      const games = [...fresh, ...topPool.sort(() => Math.random() - 0.5).slice(0, 6 - fresh.length)];
       items = games.map(g => ({
-        id: g.id, title: g.title, year: g.year, dev: g.dev,
+        id: g.id, title: g.title, year: g.year || '—', dev: g.dev,
         capsule: g.capsule, genres: g.genres, _live: false, _g: g
       }));
       lbl.textContent = '— popular right now';
@@ -3014,11 +3103,13 @@
         : [];
       const showMatch = matchScore >= 0.5 && matchedGenres.length;
       const genreStr = (it.genres || []).slice(0, 2).join(', ');
+      const badges = (it._g && isNewRelease(it._g) ? '<span class="suggestion-new">new</span>' : '')
+        + (it._g && it._g.discount > 0 ? `<span class="suggestion-sale">-${it._g.discount}%</span>` : '');
       return `
         <div class="suggestion" data-id="${escapeHtml(it.id)}">
           <div class="suggestion-thumb" style="background-image: url('${escapeHtml(it.capsule)}')"></div>
           <div class="suggestion-body">
-            <div class="suggestion-title">${escapeHtml(it.title)}${it._live ? '<span class="suggestion-live">live</span>' : ''}</div>
+            <div class="suggestion-title">${escapeHtml(it.title)}${it._live ? '<span class="suggestion-live">live</span>' : ''}${badges}</div>
             <div class="suggestion-meta">${escapeHtml(it.year)}${it.dev ? ' · ' + escapeHtml(it.dev) : ''}${genreStr ? ' · ' + escapeHtml(genreStr) : ''}</div>
             ${showMatch ? `<div class="suggestion-match">↳ matches: ${escapeHtml(matchedGenres.slice(0,3).join(', '))}</div>` : ''}
           </div>
@@ -3182,7 +3273,7 @@
     const rect = e.currentTarget.getBoundingClientRect();
     root.style.setProperty('--toggle-x', `${rect.left + rect.width/2}px`);
     root.style.setProperty('--toggle-y', `${rect.top + rect.height/2}px`);
-    if (document.startViewTransition) {
+    if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       document.startViewTransition(() => { root.dataset.theme = next; });
     } else {
       root.dataset.theme = next;
@@ -3344,8 +3435,17 @@
     try {
       const res = await fetch('games.json', { cache: 'default' });
       if (!res.ok) return;
-      const entries = await res.json();
+      const payload = await res.json();
+      const entries = Array.isArray(payload) ? payload : (payload && payload.games) || [];
       if (!Array.isArray(entries) || !entries.length) return;
+      if (payload && payload.generated) {
+        const d = new Date(payload.generated);
+        const el = document.getElementById('dataFresh');
+        if (el && !isNaN(d.getTime())) {
+          el.textContent = `Steam data refreshed ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+          el.title = `${entries.length} titles · prices and metadata pulled from the Steam store on ${d.toLocaleString()}`;
+        }
+      }
       const handCuratedTitles = new Set(GAME_DB.map(g => (g.title || '').toLowerCase().trim()));
       let added = 0;
       for (const e of entries) {
@@ -3357,8 +3457,9 @@
       }
       const countEl = document.getElementById('rawgDbCount');
       if (countEl) countEl.textContent = GAME_DB.length;
-      const gi = document.getElementById('gameInput');
-      if (gi && gi.value) renderSuggestions(gi.value);
+      const gi = document.getElementById('game');
+      if (gi && document.activeElement !== gi) renderSuggestions(gi.value || '');  // refresh idle list with fresh releases / sale badges
+      else if (gi && gi.value) renderSuggestions(gi.value);
       console.log(`Prefetch loaded: +${added} games (total ${GAME_DB.length})`);
     } catch (e) {
       // games.json not present (e.g. before first prefetch run) — silent fallback to hand-curated
@@ -3882,7 +3983,7 @@
         <div class="fav-thumb" style="background-image: url('${g.capsule}')"></div>
         <div class="fav-body">
           <div class="fav-title">${g.title}</div>
-          <div class="fav-meta">${g.year} · ${g.genres.slice(0,3).join(' · ')}</div>
+          <div class="fav-meta">${g.year || '—'} · ${g.genres.slice(0,3).join(' · ')}</div>
         </div>
         <div class="fav-check">${favPicked.has(g.id) ? '✓' : '+'}</div>
       </div>
@@ -3967,6 +4068,9 @@
     return GAME_DB.filter(g => {
       if (!g.launch || g.launch <= 0) return false;
       if (!g.low || g.low <= 0) return false;
+      // Prefetched entries carry the real Steam discount at refresh time — trust that over the low/launch heuristic,
+      // whose `low` can be a synthetic 50% fallback for games that have never been on sale.
+      if (g._prefetched) return typeof g.discount === 'number' && g.discount >= 20;
       const disc = (g.launch - g.low) / g.launch;
       return disc >= 0.2;
     });
@@ -4086,6 +4190,11 @@
   });
   document.getElementById('dealsClose').addEventListener('click', () => dealsModal.classList.remove('open'));
   dealsModal.addEventListener('click', e => { if (e.target === dealsModal) dealsModal.classList.remove('open'); });
+  // Escape closes whichever modal is open — no animation on a keyboard-initiated close
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('.modal-backdrop.open').forEach(m => m.classList.remove('open'));
+  });
 
   document.getElementById('dealsFilters').addEventListener('click', e => {
     const btn = e.target.closest('.deals-filter-btn');
@@ -4192,7 +4301,10 @@
     document.getElementById('emptyState').style.display = 'none';
     const r = document.getElementById('receipt');
     r.style.display = 'block';
-    r.style.animation = 'none'; void r.offsetWidth; r.style.animation = '';
+    r.classList.remove('in');
+    Array.from(r.children).forEach((c, i) => c.style.setProperty('--i', Math.min(i, 7)));
+    void r.offsetWidth;
+    r.classList.add('in');
 
     const userGenres = Array.from(state.selectedGenres);
 
@@ -4269,7 +4381,7 @@
     const platLabel = state.manualPrice != null ? 'manual' : (PLATFORM_LABELS[state.selectedPlatform] || '—');
     const devStr = g.dev ? `<span>${g.dev}</span> · ` : '';
     document.getElementById('rMeta').innerHTML =
-      `${g.year} · ${devStr}${g.genres.join(', ')} · ${platLabel}`;
+      `${g.year || '—'} · ${devStr}${g.genres.join(', ')} · ${platLabel}`;
 
     const gradeEl = document.getElementById('rGrade');
     gradeEl.textContent = grade;
@@ -4278,29 +4390,29 @@
     document.getElementById('rScore').textContent = composite;
     document.getElementById('rVerdict').textContent = verdict;
 
-    setTimeout(() => { document.getElementById('rMeter').style.width = composite + '%'; }, 100);
+    setTimeout(() => { document.getElementById('rMeter').style.transform = `scaleX(${composite / 100})`; }, 100);
 
     const _metricsMap = {
       coffee: {
-        label: '// the coffee metric',
+        label: 'the coffee metric',
         text: isFree
           ? `It's free. Every hour costs nothing but your time. <strong>${g.hours.main}h of free gameplay = priceless ratio.</strong>`
           : (() => { const n = priceUsd / 5; return `That's ${n.toFixed(1)} flat whites for ${g.hours.main} hours of ${grade === 'D' ? 'mediocrity' : 'gameplay'}. <strong>≈${(g.hours.main / Math.max(n, 0.1)).toFixed(1)} hours per coffee.</strong>`; })()
       },
       food: {
-        label: '// the indomie metric',
+        label: 'the indomie metric',
         text: isFree
           ? `It's free — you'd need <strong>0 packs of Indomie</strong> to justify it. Easy math.`
           : (() => { const packs = Math.round(priceUsd / 0.31); const days = Math.round(packs / 3); return `That's <strong>${packs} packs of Indomie Goreng</strong> (Rp 5,000 each). ${packs >= 90 ? `Enough to eat for ${days} days.` : `A solid week of dinner.`}`; })()
       },
       tokens: {
-        label: '// the claude token metric',
+        label: 'the claude token metric',
         text: isFree
           ? `Free game, free vibes. Technically infinite Claude tokens. Claude would approve.`
           : (() => { const months = (priceUsd / 20).toFixed(1); const mtok = (priceUsd / 3).toFixed(0); return `That's <strong>${months} months of Claude Pro</strong> — or ${mtok}M Sonnet input tokens. You could ship something.`; })()
       },
       mbg: {
-        label: '// the MBG metric',
+        label: 'the MBG metric',
         text: isFree
           ? `It's free — just like a school lunch. Pak Prabowo would be proud.`
           : (() => { const meals = Math.round(priceUsd / 0.61); return `That's <strong>${meals} school lunch portions</strong> from Indonesia's MBG program (@ Rp 10,000/meal). Prioritise wisely.`; })()
@@ -4334,7 +4446,9 @@
         : `${fmtPrice(priceUsd)} ÷ ${g.hours.main}h = ${fmtPrice(dollarsPerHour)}/hr · ${dollarsPerHour < 1 ? 'below the $1/hr line' : 'above the $1/hr line'}`],
       ['Quality', qualityScore, `${g.hours.main}h main, ${g.hours.complete}h to 100% — ${density > 0.7 ? 'tight, low-filler experience' : density > 0.4 ? 'moderate side content' : 'completionist territory, lots of filler'}`],
       ['Genre', genreScore, userGenres.length === 0 ? 'no preferences set — neutral score applied' : `your taste: ${userGenres.join(', ')} · matches: ${g.genres.filter(x => userGenres.includes(x)).join(', ') || 'none'}`],
-      ['Hype', hypeScore, `critics ${g.criticScore} vs players ${g.userScore} — ${delta < 5 ? 'tightly aligned' : delta < 15 ? 'slight gap' : 'major disagreement'}`],
+      ['Hype', hypeScore, (g._prefetched && !g.meta)
+        ? `no Metacritic score on Steam — players ${g.userScore}% positive, used for both sides`
+        : `critics ${g.criticScore} vs players ${g.userScore} — ${delta < 5 ? 'tightly aligned' : delta < 15 ? 'slight gap' : 'major disagreement'}`],
       ['Deal', dealScore, isFree
         ? `free to play — no price to discount`
         : `${(discountFromLaunch * 100).toFixed(0)}% off launch · paying ${fmtPrice(priceUsd - g.low)} above all-time low`]
@@ -4344,13 +4458,13 @@
       document.getElementById('d' + key).textContent = detail;
       const pillar = document.querySelector(`.pillar[data-id="${key.toLowerCase()}"]`);
       if (score >= 70) pillar.classList.add('high'); else pillar.classList.remove('high');
-      setTimeout(() => { document.getElementById('b' + key).style.width = score + '%'; }, 200);
+      setTimeout(() => { document.getElementById('b' + key).style.transform = `scaleX(${score / 100})`; }, 200);
     });
 
     setTimeout(() => {
-      document.getElementById('hCritic').style.width = g.criticScore + '%';
-      document.getElementById('hUser').style.width = g.userScore + '%';
-      document.getElementById('hDelta').style.width = (delta * 5) + '%';
+      document.getElementById('hCritic').style.transform = `scaleX(${g.criticScore / 100})`;
+      document.getElementById('hUser').style.transform = `scaleX(${g.userScore / 100})`;
+      document.getElementById('hDelta').style.transform = `scaleX(${Math.min(1, delta * 5 / 100)})`;
     }, 300);
     document.getElementById('hCriticN').textContent = g.criticScore;
     document.getElementById('hUserN').textContent = g.userScore;
@@ -4447,7 +4561,7 @@
       ? 'always free'
       : (aboveLow < 5 ? 'matching all-time low' : `+${aboveLow.toFixed(0)}% above`);
     document.getElementById('dLaunch').textContent = hasLive ? fmtRaw(lr.initial) : fmtPrice(g.launch);
-    document.getElementById('dLaunchSub').textContent = g.year + ' release';
+    document.getElementById('dLaunchSub').textContent = g.year ? g.year + ' release' : 'launch price';
 
     // Game-similarity recommendations — refreshes for every selected game
     const recEl = document.getElementById('rRec');
@@ -4524,6 +4638,54 @@
   bindPH('.how-leg-item',     el => +el.dataset.c);
   bindPH('.how-pc',           el => +el.dataset.c);
   bindPH('.hf-term[data-c]',  el => +el.dataset.c);
+
+  // ---- Hero: the art drifts against the cursor and a warm light follows it ----
+  // Decorative, so it gets momentum (lerp in rAF) instead of snapping to the pointer.
+  (function initHeroParallax() {
+    const hero = document.querySelector('.hero-visual');
+    const img = hero && hero.querySelector('.hero-visual__img');
+    const light = hero && hero.querySelector('.hero-light');
+    const text = document.querySelector('.hero');
+    if (!hero || !img || !light) return;
+    const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!canHover || reduce) return;
+
+    let tx = 0, ty = 0, cx = 0, cy = 0;          // image: target / current
+    let lx = 0, ly = 0, lcx = 0, lcy = 0;        // light: target / current
+    let raf = null, inside = false, lit = false;
+
+    function frame() {
+      cx += (tx - cx) * 0.07;  cy += (ty - cy) * 0.07;     // heavy: the painting lags
+      lcx += (lx - lcx) * 0.18; lcy += (ly - lcy) * 0.18;  // light: quick, but still trails
+      img.style.transform = `translate3d(${cx.toFixed(2)}px, ${cy.toFixed(2)}px, 0) scale(1.06)`;
+      light.style.transform = `translate3d(${lcx.toFixed(1)}px, ${lcy.toFixed(1)}px, 0)`;
+      if (text) text.style.transform = `translate3d(${(-cx * 0.22).toFixed(2)}px, ${(-cy * 0.22).toFixed(2)}px, 0)`;
+      const settled = Math.abs(tx - cx) < 0.05 && Math.abs(ty - cy) < 0.05 && Math.abs(lx - lcx) < 0.2 && Math.abs(ly - lcy) < 0.2;
+      raf = settled ? null : requestAnimationFrame(frame);
+    }
+    function kick() { if (!raf) raf = requestAnimationFrame(frame); }
+    function leave() {
+      if (!inside) return;
+      inside = false; tx = 0; ty = 0;
+      if (lit) { lit = false; light.style.opacity = '0'; }
+      kick();
+    }
+    window.addEventListener('pointermove', e => {
+      if (hero.style.display === 'none') return;
+      const r = hero.getBoundingClientRect();
+      if (r.bottom <= 0 || e.clientY < r.top || e.clientY > r.bottom) { leave(); return; }
+      inside = true;
+      if (!lit) { lit = true; light.style.opacity = '1'; }
+      const nx = (e.clientX - r.left) / r.width - 0.5;
+      const ny = (e.clientY - r.top) / r.height - 0.5;
+      tx = -nx * 40; ty = -ny * 22;                   // art slides away from the cursor
+      lx = e.clientX - r.left; ly = e.clientY - r.top; // light sits under it
+      kick();
+    }, { passive: true });
+    document.addEventListener('pointerleave', leave);
+    window.addEventListener('blur', leave);
+  })();
 
   // ---- How It Works page routing ----
   const mainView  = document.getElementById('main-view');

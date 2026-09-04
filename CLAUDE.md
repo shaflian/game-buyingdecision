@@ -30,6 +30,26 @@ All content, logic, and styles live in `worth-it-v2.html`. Never split it.
 - Never use ALL CAPS + wide letter-spacing together — that's the "AI template" pattern
 - No `::before` decorative lines on labels
 
+## Motion rules (v0.9 — Emil Kowalski / impeccable pass)
+Tokens: `--ease-out: cubic-bezier(0.23, 1, 0.32, 1)` for arrivals, presses, reveals · `--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1)` for on-screen movement · `--transition: 0.18s ease` stays for color/border hovers.
+- **Never `transition: all`.** List properties. Every pressable element (`button`, `.pill`, `.deal-card`, `.rec-card`, `.fav-item`, `.metric-tab`) gets `scale(0.97)` on `:active` via the shared block near the end of the CSS.
+- **Bars animate `transform: scaleX()`**, never `width` — `.meter-fill`, `.pillar-bar`, `.hype-bar` are `width:100%; transform-origin:left`. JS sets `style.transform` to `scaleX(score / 100)`.
+- **Receipt arrival** is a staggered transition, not a keyframe: `runCalc()` sets `--i` on each direct child of `#receipt`, toggles `.in`; CSS delays by `--i * 45ms` with a 6px blur that resolves. Re-running retargets cleanly.
+- **Hover-only motion** (arrow nudges, icon pops, card lifts) is neutralised under `@media (hover: none)`.
+- **Reduced motion** keeps color/opacity transitions, drops transforms/filters, disables the theme ripple and the hero parallax.
+- **No glow halos** (`box-shadow: 0 0 Npx`) on hover states or bars. The grade letter is the only thing allowed to glow.
+- **Modals** animate from `scale(0.965)` + opacity in 240ms; never from `scale(0)`.
+- UI durations stay under 300ms except the receipt reveal (480ms, authored moment) and bar fills (800–900ms, explanatory).
+
+### Hero interaction
+`.hero-visual` holds `.hero-visual__img` (the Tsushima art, `scale(1.06)` so it can drift) and `.hero-light` (a 760px warm radial, `mix-blend-mode: screen`; `soft-light` in light theme). `initHeroParallax()` in the script lerps the art *against* the cursor (±20px / ±11px), the light *to* the cursor, and the `.hero` text slightly with the cursor — all in one rAF loop that stops when settled. Skipped entirely for coarse pointers and reduced motion. The `::after` fade stays on `.hero-visual` so the page seam never moves.
+
+### De-AI decisions (don't reintroduce)
+- No eyebrow/kicker above the H1 — the tagline lives in the footer.
+- No section numbers (`/ 01`) on `.section-label`s.
+- No `// comment`-style labels; `.coffee-label` and `.rec-header` are plain Plex Sans labels.
+- `::selection`, caret and `:focus-visible` are themed from the palette.
+
 ## Grade color system
 Grade element gets `data-g` attribute set by JS. CSS targets `[data-g="S"]` etc. for per-grade glow:
 ```css
@@ -66,6 +86,11 @@ Three tiers feed the suggestions dropdown. Loader merges them in order; later ti
 2. **`games.json` prefetch** (~500 entries) — produced by `scripts/prefetch-steam.js`. SteamSpy gives the popularity-ranked appid list; Steam's official Web API (`store.steampowered.com/api/appdetails`) gives real genres + release year + prices + capsule per game. Hours are derived from SteamSpy's median playtime (capped at 80h) and represent typical engagement, not strict main-story time.
 3. **Live RAWG search** — opt-in, BYO key. Activates once user pastes a RAWG key; debounced search beyond the local pool. Results badged `LIVE`. Note: RAWG's signup is broken for many users — Steam-only path is preferred.
 
+### `games.json` format (v0.9+)
+`{ generated: ISO-date, source: 'steam', games: [...] }`. The loader (`loadPrefetchedGames`) accepts both this and the legacy bare array. `generated` feeds the "Steam data refreshed …" line in the footer (`#dataFresh`).
+
+Extra per-game fields written by the prefetch: `current` (live Steam price at fetch time), `discount` (% off at fetch time — drives the `-XX%` badge in suggestions), `released` (Steam release-date string — drives the `new` badge, ≤90 days), `meta` (Metacritic score from Steam when present; `criticScore` = `meta || userScore`). When `meta` is absent on a prefetched title, the Hype pillar says so instead of pretending critics agree.
+
 ### Regenerating `games.json` (no API key required)
 ```powershell
 # PowerShell (Windows):
@@ -76,7 +101,12 @@ node scripts/prefetch-steam.js
 # bash:
 node scripts/prefetch-steam.js
 ```
-Default 500 games, ~3 min runtime. Override via `STEAM_COUNT=1000` (PS: `$env:STEAM_COUNT="1000"`) — diminishing returns past ~500 due to long-tail noise. Raise `STEAM_PAUSE` if 429s appear.
+What a default run does:
+1. SteamSpy top-500 by owners **plus** fresh candidates from Steam's storefront lists (`top_sellers`, `new_releases`, `specials`) and SteamSpy `top100in2weeks` — this is how brand-new releases get in.
+2. Batched price refresh for **every** game already in the pool (`filters=price_overview`, 50 appids per call — cheap, ~1 min for 1000 games).
+3. Full appdetails only for games not yet in the pool. Skips DLC/hardware/demos (`type !== 'game'`), unreleased (`coming_soon`), and storefront picks with fewer than `STEAM_MIN_SIGNAL` (default 30) reviews+recommendations.
+
+Env overrides (PS: `$env:NAME="value"`): `STEAM_COUNT=1000` (diminishing returns past ~500), `STEAM_PAUSE` (raise if 429s appear), `STEAM_FULL_REFRESH=1` (re-fetch metadata for all games, ~15–25 min — do this every few months so `meta`/genres/years stay current), `STEAM_SKIP_PRICE_REFRESH=1`.
 
 The legacy `scripts/prefetch-rawg.js` is kept for users who already have a RAWG key, but Steam is the supported path.
 
@@ -235,6 +265,9 @@ score = jaccard + tasteBonus;
 | `.rec-card` | Clickable card, calls `pickGame(id)` on click |
 | `.rec-thumb` | `background-image` thumbnail (54px tall) |
 | `.rec-match` | Shared genre tags in `DM Mono` primary color |
+
+## Deals browser — what counts as "on sale"
+`getDealsPool()` trusts the prefetch's `discount` field when present (`discount >= 20`, i.e. actually discounted on Steam at the last refresh). Entries without a `discount` field (hand-curated `GAME_DB`) fall back to the `low`-vs-`launch` heuristic. Never let the prefetch's `low = launch * 0.5` fallback surface as a "deal" — that was the 859-games-on-sale bug.
 
 ## GAME_DB — Free-to-Play entries
 
